@@ -63,15 +63,39 @@ class App(QApplication):
         self.isFirstMessage = True
 
         self.showData = False
-        self.Braken = False
+        self.isMoving = False
 
         self.selectedController = None
+
+        # data logging
+        self.isLogging = False
+        self.wasDataSaved = False
+        self.logFile = None
+        self.logHandler = None
+        self.logFilename = None
+
+        # set initial buttons states
+        self.main.buttonBrake.setEnabled(False)
+        self.main.buttonStart.setEnabled(False)
+        self.main.buttonStop.setEnabled(False)
+        self.main.buttonReset.setEnabled(False)
+        self.main.buttonSend.setEnabled(False)
+        self.main.buttonSelectController.setEnabled(False)
 
 
     def closeWindow( self ):
         if self.isDeviceInit:
             self.serialHandler.stopThread.emit()
             self.isDeviceInit = False
+
+        # check if there are temporal files before start again
+        if self.logFile:
+            # close file
+            self.logFile.close()
+            # delete temporal
+            print('borrando todos los temporales')
+            os.remove(self.logFilename)
+
         self.exit(0)
 
     # configuration of actions executed by the MainWIndow
@@ -81,7 +105,7 @@ class App(QApplication):
         self.main.buttonReset.clicked.connect(self.actionResetButton)
         self.main.buttonStart.clicked.connect(self.actionStartButton)
         self.main.buttonBrake.clicked.connect(self.actionBrakeButton)
-        self.main.buttonToogleShow.clicked.connect(self.actionToogleShowButton)
+        self.main.buttonStop.clicked.connect(self.actionStopButton)
         self.main.buttonSelectController.clicked.connect(self.actionSelectController)        
         self.main.pSlider.valueChanged.connect(self.setPValue)
         self.main.iSlider.valueChanged.connect(self.setIValue)
@@ -101,7 +125,7 @@ class App(QApplication):
         else:
             self.actionRefreshButton()
 
-        print('[INFO] Preparing Serial Handler')
+        #print('[INFO] Preparing Serial Handler')
         self.serialHandler.setInterface(self.device, self.baudrate)
         self.isDeviceInit = True
         self.serialHandler.startThread.emit()
@@ -110,6 +134,13 @@ class App(QApplication):
         for cont in self.controllers:
             self.main.comboBoxController.addItem(cont)
 
+        self.main.buttonRefresh.setEnabled(False)
+        self.main.buttonSelect.setEnabled(False)
+        self.main.buttonStart.setEnabled(True)
+        self.main.buttonStop.setEnabled(False)
+        self.main.buttonBrake.setEnabled(False)
+        self.main.buttonReset.setEnabled(True)
+        self.main.buttonSend.setEnabled(True)
 
     def actionRefreshButton(self):
         # read available interfaces
@@ -130,38 +161,97 @@ class App(QApplication):
     def actionResetButton(self):
         self.serialHandler.sendMsg.emit('q\n')
         self.showData = False
-        self.Braken = False
+        self.isMoving = False
         self.selectedController = None
-        self.main.mainPlot.clearData()
+
+        self.main.buttonStart.setEnabled(True)
+        self.main.buttonStop.setEnabled(False)
+        self.main.buttonBrake.setEnabled(False)
+        self.main.buttonReset.setEnabled(True)
+        self.main.buttonSend.setEnabled(True)
+
         
     def actionStartButton(self):
+        self.main.buttonStop.setEnabled(True)
+        self.main.buttonBrake.setEnabled(True)
+        self.main.buttonSelectController.setEnabled(False)
+        self.main.buttonStart.setEnabled(False)
+
         self.serialHandler.sendMsg.emit('n\n') # receive controller type
         self.actionSelectController()
         self.serialHandler.sendMsg.emit('i\n')
         time.sleep(0.1)
         self.showData = True
-        self.actionBrakeButton()
+        self.move();
         self.serialHandler.sendMsg.emit('s\n')
 
-    def actionBrakeButton(self):
-        self.serialHandler.sendMsg.emit('b\n')
-        if self.Braken == False:
-            self.changeBrakenButton()
-            self.Braken = True
-        else:
-            self.changeBrakenButton()
-            self.Braken = False
+        # start logging
+        self.isLogging = True
 
-    def actionToogleShowButton(self):
-        if self.showData:
-            self.serialHandler.sendMsg.emit('x\n')
-            self.showData = False
+        # check if there are temporal files before start again
+        if self.logFile:
+            # close file
+            self.logFile.close()
+            # delete temporal
+            print('borrando %s' % self.logFilename)
+            os.remove(self.logFilename)
+
+        now = datetime.now()
+        self.logFilename = "datos_%s_%s_%s_%s_%s_%s_%s.csv" % (self.selectedController,now.year, now.month, now.day, now.hour, now.minute, now.second)
+
+        # prepare header
+        header = []
+        headerText = "Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)
+        header.append(headerText)
+        # wasTimeIncluded = False
+        # for key in self.sensors:
+        #     # include time columns
+        #     if not wasTimeIncluded:
+        #         header.append(self.sensors[key].xLabel)
+        #         wasTimeIncluded = True
+        #     # include data column
+        #     header.append(self.sensors[key].yLabel)
+
+        # open file
+        self.logFile = open(self.logFilename, 'w', newline='')
+        self.logHandler = csv.writer(self.logFile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        self.logHandler.writerow(header)
+        print('created %s' % self.logFilename)
+
+    def actionBrakeButton(self):
+        if self.isMoving == True:
+            self.brake()
         else:
-            self.serialHandler.sendMsg.emit('s\n')
-            self.showData = True
+            self.move()
+            
+
+    def brake(self):
+        self.serialHandler.sendMsg.emit('b\n')
+        self.changeBrakenButton()
+        self.isMoving = False
+
+    def move(self):
+        self.serialHandler.sendMsg.emit('b\n')
+        self.changeBrakenButton()
+        self.isMoving = True
+
+
+    def actionStopButton(self):
+        self.main.buttonStart.setEnabled(True)
+        self.main.buttonStop.setEnabled(False)
+        self.main.buttonBrake.setEnabled(False)
+        self.main.buttonReset.setEnabled(True)
+        self.main.buttonSend.setEnabled(False)
+        self.main.buttonSelectController.setEnabled(True)
+
+        self.actionBrakeButton();
+        
+        self.isLogging = False
+        self.logFile.close()
+ 
 
     def changeBrakenButton(self):
-        if self.Braken == False:
+        if self.isMoving == True:
             self.main.buttonBrake.setText("BRAKEn")
             self.main.buttonBrake.setStyleSheet('QPushButton {color: red;}')
         else:
@@ -170,7 +260,6 @@ class App(QApplication):
 
     def actionSelectController(self):
 
-        self.actionBrakeButton()
         if self.main.comboBoxController.currentText() != self.selectedController:
             self.selectedController = self.main.comboBoxController.currentText()
             self.main.refSliderLabel.setText(self.selectedController)
@@ -185,6 +274,9 @@ class App(QApplication):
                 self.selectTensionController()
 
             self.main.mainPlot.clearData()
+
+            self.main.buttonBrake.setEnabled(False)
+            #self.main.buttonStart.setEnabled(True)
 
     def selectPositionController(self):
         self.main.refSliderLabel.setText('Position Ref')  

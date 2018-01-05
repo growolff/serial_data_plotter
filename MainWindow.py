@@ -70,9 +70,9 @@ class MainWindow(QMainWindow):
         self.buttonStart.setShortcut('q')
 
         # Start visualization plots button
-        self.buttonToogleShow = QPushButton("Toogle Show")
-        self.buttonsUI.addWidget(self.buttonToogleShow, row=4, col=0)
-        self.buttonToogleShow.setShortcut('s')
+        self.buttonStop = QPushButton("Stop")
+        self.buttonsUI.addWidget(self.buttonStop, row=4, col=0)
+        self.buttonStop.setShortcut('s')
 
         # Motor HandBrake button
         self.buttonBrake = QPushButton("BRAKEn")
