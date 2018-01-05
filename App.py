@@ -88,13 +88,13 @@ class App(QApplication):
             self.serialHandler.stopThread.emit()
             self.isDeviceInit = False
 
-        # check if there are temporal files before start again
-        if self.logFile:
-            # close file
-            self.logFile.close()
-            # delete temporal
-            print('borrando todos los temporales')
-            os.remove(self.logFilename)
+        # # check if there are temporal files before start again
+        # if self.logFile:
+        #     # close file
+        #     self.logFile.close()
+        #     # delete temporal
+        #     print('borrando todos los temporales')
+        #     os.remove(self.logFilename)
 
         self.exit(0)
 
@@ -188,13 +188,13 @@ class App(QApplication):
         # start logging
         self.isLogging = True
 
-        # check if there are temporal files before start again
-        if self.logFile:
-            # close file
-            self.logFile.close()
-            # delete temporal
-            print('borrando %s' % self.logFilename)
-            os.remove(self.logFilename)
+        # # check if there are temporal files before start again
+        # if self.logFile:
+        #     # close file
+        #     self.logFile.close()
+        #     # delete temporal
+        #     print('borrando %s' % self.logFilename)
+        #     os.remove(self.logFilename)
 
         now = datetime.now()
         self.logFilename = "datos_%s_%s_%s_%s_%s_%s_%s.csv" % (self.selectedController,now.year, now.month, now.day, now.hour, now.minute, now.second)
@@ -203,14 +203,6 @@ class App(QApplication):
         header = []
         headerText = "Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)
         header.append(headerText)
-        # wasTimeIncluded = False
-        # for key in self.sensors:
-        #     # include time columns
-        #     if not wasTimeIncluded:
-        #         header.append(self.sensors[key].xLabel)
-        #         wasTimeIncluded = True
-        #     # include data column
-        #     header.append(self.sensors[key].yLabel)
 
         # open file
         self.logFile = open(self.logFilename, 'w', newline='')
@@ -345,7 +337,14 @@ class App(QApplication):
             self.main.dValue.setText(str(sensorData[2]/100))
         elif isinstance(sensorData,dict):
             # update plot
-            self.main.mainPlot.update(sensorData)
+            #"Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)
+            ref,actual,time = self.main.mainPlot.update(sensorData)
+            if self.isLogging:
+                txt = "%f;%f;%f" % (ref,actual,time)
+                row = []
+                row.append(txt)
+                self.logHandler.writerow(row)
+
         elif isinstance(sensorData,int):
             #print(sensorData)
             if(sensorData == 1):

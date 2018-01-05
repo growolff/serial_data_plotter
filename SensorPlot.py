@@ -95,8 +95,8 @@ class SensorPlot:
         #print(self.xIdx, self.currentX)
         #print(self.yIdx, self.currentY)
 
-        self.yData[self.yIdx] = self.currentY
-        self.xData[self.xIdx] = self.refY
+        self.yData[self.yIdx] = self.currentY # y current
+        self.xData[self.xIdx] = self.refY # x ref
         self.time[self.timeIdx] = self.currentTime
 
         # Update current value label
@@ -116,6 +116,7 @@ class SensorPlot:
         self.plot.setData(x=timeDataTmp, y=yDataTmp)
         self.plot2.setData(x=timeDataTmp, y=xDataTmp)
 
+        return float(self.refY),float(self.currentY),self.currentTime
 
     def clearData(self):
         currentTime = datetime.today().timestamp()
