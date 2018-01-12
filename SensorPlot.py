@@ -116,7 +116,7 @@ class SensorPlot:
         self.plot.setData(x=timeDataTmp, y=yDataTmp)
         self.plot2.setData(x=timeDataTmp, y=xDataTmp)
 
-        return float(self.refY),float(self.currentY),self.currentTime
+        return int(self.refY),int(self.currentY),float(self.currentTime),int(measurement["Tens:"])
 
     def clearData(self):
         currentTime = datetime.today().timestamp()

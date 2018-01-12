@@ -176,6 +176,7 @@ class App(QApplication):
         self.main.buttonBrake.setEnabled(True)
         self.main.buttonSelectController.setEnabled(False)
         self.main.buttonStart.setEnabled(False)
+        self.main.buttonSend.setEnabled(True)
 
         self.serialHandler.sendMsg.emit('n\n') # receive controller type
         self.actionSelectController()
@@ -200,14 +201,14 @@ class App(QApplication):
         self.logFilename = "datos_%s_%s_%s_%s_%s_%s_%s.csv" % (self.selectedController,now.year, now.month, now.day, now.hour, now.minute, now.second)
 
         # prepare header
-        header = []
-        headerText = "Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)
-        header.append(headerText)
+        #header = []
+        #headerText = "Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)
+        #header.append(headerText)
 
         # open file
         self.logFile = open(self.logFilename, 'w', newline='')
         self.logHandler = csv.writer(self.logFile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        self.logHandler.writerow(header)
+        #self.logHandler.writerow(header)
         print('created %s' % self.logFilename)
 
     def actionBrakeButton(self):
@@ -328,6 +329,7 @@ class App(QApplication):
         sensorData = serialParser(msg)
         if isinstance(sensorData,str):
             print(sensorData)
+            #pass
         elif isinstance(sensorData,list):
             self.main.pSlider.setValue(sensorData[0])
             self.main.iSlider.setValue(sensorData[1])
@@ -338,9 +340,10 @@ class App(QApplication):
         elif isinstance(sensorData,dict):
             # update plot
             #"Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)
-            ref,actual,time = self.main.mainPlot.update(sensorData)
+            #print(sensorData)
+            ref,actual,time,tens = self.main.mainPlot.update(sensorData)
             if self.isLogging:
-                txt = "%f;%f;%f" % (ref,actual,time)
+                txt = "%f;%d;%d;%d" % (time,ref,actual,tens)
                 row = []
                 row.append(txt)
                 self.logHandler.writerow(row)
