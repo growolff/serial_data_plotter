@@ -106,7 +106,7 @@ class MainWindow(QMainWindow):
         self.pValue = QLabel("0",self)
         self.pSlider = QSlider(Qt.Horizontal)
         self.pSlider.setMinimum(0)
-        self.pSlider.setMaximum(200)
+        self.pSlider.setMaximum(300)
         self.slidersUI.addWidget(self.pLabel, row=0,col=0)
         self.slidersUI.addWidget(self.pSlider, row=0,col=1)
         self.slidersUI.addWidget(self.pValue, row=0,col=2)

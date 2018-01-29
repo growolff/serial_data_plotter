@@ -99,10 +99,12 @@ class SerialHandler(QObject):
         while self.running is True:
 
             if self.alone is not None:
+                print(self.alone)
                 self.ser.write(bytes(self.alone,'UTF-8'))
                 self.alone = None
 
             if self.compound is not None:
+                print(self.compound)
                 self.ser.write(bytes(self.compound,'UTF-8'))
                 self.compound = None
 

@@ -135,6 +135,7 @@ class App(QApplication):
             self.main.comboBoxController.addItem(cont)
 
         self.main.buttonRefresh.setEnabled(False)
+        self.main.buttonSelectController.setEnabled(True)
         self.main.buttonSelect.setEnabled(False)
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
@@ -183,7 +184,10 @@ class App(QApplication):
         self.serialHandler.sendMsg.emit('i\n')
         time.sleep(0.1)
         self.showData = True
-        self.move();
+        
+        if self.isMoving == False:
+            self.move()
+
         self.serialHandler.sendMsg.emit('s\n')
 
         # start logging
@@ -224,7 +228,7 @@ class App(QApplication):
         self.isMoving = False
 
     def move(self):
-        self.serialHandler.sendMsg.emit('b\n')
+        self.serialHandler.sendMsg.emit('B\n')
         self.changeBrakenButton()
         self.isMoving = True
 
@@ -237,7 +241,8 @@ class App(QApplication):
         self.main.buttonSend.setEnabled(False)
         self.main.buttonSelectController.setEnabled(True)
 
-        self.actionBrakeButton();
+        if self.isMoving == True:
+            self.brake()
         
         self.isLogging = False
         self.logFile.close()
@@ -290,8 +295,8 @@ class App(QApplication):
     def selectTensionController(self):
         self.main.refSliderLabel.setText('Tension Ref')  
         self.main.refSlider.setMinimum(0)
-        self.main.refSlider.setMaximum(4000)
-        self.main.refSlider.setTickInterval(500)
+        self.main.refSlider.setMaximum(1200)
+        self.main.refSlider.setTickInterval(100)
         self.main.refSlider.setValue(0)
         self.main.refSliderValue.setText('0')
 
