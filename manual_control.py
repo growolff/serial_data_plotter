@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*
 
 # Operating system
 import os
@@ -7,10 +7,15 @@ import sys
 import serial
 import time
 
-import threading
+from threading import Lock, Thread
 
 from PyQt5.Qt import *
 from pyqtgraph.Qt import QtCore, QtGui
+from array import array
+
+from message import *
+
+from io import BytesIO
 
 class Window(QMainWindow):
     def __init__(self):
@@ -53,20 +58,33 @@ class Window(QMainWindow):
         self.s.send_command(msg)
         self.textbox.setText("")
 
-class SerialHandler():
+class HandSerial(object):
     def __init__(self):
 
-        self.device = 'COM10'
+        self.device = 'COM5'
         self.baudrate = 115200
         self.running = False
 
+        self.cmd = MotorCommand()
+
+        self.serial_mutex = Lock()
+
         self.ser = serial.Serial(self.device, self.baudrate, timeout=0.1)
 
-        self.thread = threading.Thread(target=self.serialHandlerThread)
+        self.thread = Thread(target=self.serialHandlerThread)
         #self.startProcess()
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stopProcess()
+
+    def close(self):
+        """
+        Close the serial port.
+        """
+        if self.ser:
+            self.ser.flushInput()
+            self.ser.flushOutput()
+            self.ser.close()
 
     def stopProcess(self):
         self.running = False
@@ -75,10 +93,39 @@ class SerialHandler():
         self.running = True
         self.thread.start()
 
-    def send_command(self,command):
-        msg = "Send command: %s"%(command)
-        print(msg)
-        self.ser.write(bytes(command,'UTF-8'))
+    def send_command_old(self,command):
+        #msg = "Send command: %s"%(command)
+        #print(msg)
+        self.ser.write(bytes(command+'\n','UTF-8'))
+        #self.ser.write(command)
+
+    def send_command(self):
+
+        buff = BytesIO()
+        self.cmd.serialize(buff)
+
+        print(to_hex(buff.getvalue()))
+
+        base_cmd_int = bytearray(buff.getvalue())
+        checksum = 255 - ( sum(base_cmd_int) % 256 )
+        # Packet: FF  FF  BASE_CMD  CHECKSUM
+        packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([checksum])
+        packet_str = array('B', packet).tostring()
+        with self.serial_mutex:
+            self.write_serial(packet_str)
+
+    def write_serial(self, data):
+        """
+        Write in the serial port.
+        """
+        #print(self.cmd)
+        #print("Hex: {}".format(to_hex(data)))
+        self.ser.flushInput()
+        self.ser.flushOutput()
+        self.ser.write(data)
+
+    def handle_data(self,data):
+        print(data)
 
     def serialHandlerThread(self):
 
@@ -86,44 +133,88 @@ class SerialHandler():
 
             try:
                 #print('Reading messages')
-                msg = self.ser.readline()
+                #msg = self.ser.readline().decode()  # decode special characters from the message
+                msg = self.ser.readline()          # show the message as it is
             except Exception as e:
                 print("reading error")
 
             if msg:
-                print(msg)
+                s.handle_data(msg)
 
         self.ser.close()
 
 
-def main(args):
-    app = QtGui.QApplication(sys.argv)
-    window = Window()
-    sys.exit(app.exec_())
+def main(HandSerial):
+    #s.send_command('n') # needed to ask for PID params
+    s.send_command('i') # needed for finishing starting loop
 
-def main2():
-    s = SerialHandler()
-    #s.startProcess()
-
-    #print(s.ser)
-
-    #s.send_command('q\n')
-    #s.send_command('i\n')
-    
-    #s.send_command('b\n')    
+    s.send_command('W1E1')
     time.sleep(1)
+    s.send_command('W1E0')
+    #time.sleep(0.001)
+    s.send_command('W1B1')
+    time.sleep(1)
+    s.send_command('W1B0')
+    #time.sleep(0.001)
+    s.send_command('W1D1')
+    time.sleep(1)
+    s.send_command('W1D0')
+    #s.send_command('b\n')    
+    #time.sleep(1)
+
+    # Mensaje para cambiar controlador
+    #s.send_command('CXXXS0100') # P/S/T: pos/speed/tens | 0/1: neg/pos | 100: value
+
+    s.send_command('CXXXS0100')
+
     #s.send_command('b\n')
     #s.send_command('s\n')
     #s.send_command('?2\n')    
-    s.send_command('011-100\n')
-    s.send_command('021-100\n')
+    #s.send_command('0211000\n')  # 0 - MOTOR - CONTROL - REF ; ej: 021-20 -> motor 2, control position, -20 
+    #s.send_command('013500\n')
 
 
-    time.sleep(3)
-    s.send_command('0110\n')
-    s.send_command('0210\n')
+    #time.sleep(3)
+    #s.send_command('021-0\n')
+    #s.send_command('0210\n')
+    
+    #s.send_command('013100\n')
+    #s.send_command('013100\n')
+
+    s.stopProcess()
+
+def test(HandSerial):
+
+    #cmd = MotorCommand()
+    s.cmd.cmd = ord('C')
+    s.cmd.motor = 1
+    s.cmd.dpin = ord('E')
+    s.cmd.onoff = 1
+    s.cmd.ctrl = ord('S')
+    s.cmd.asd = 0
+    s.cmd.value = 255
+
+    #s.cmd.serialize(buff)
+
+
+    #s.send_command(buff)
+    s.send_command_old('i')
+    
+    time.sleep(1)
+
+    s.send_command()
+    #print((buff.getvalue()))
+
+    time.sleep(5)
+    s.stopProcess()
 
 if __name__ == "__main__":
     #main(sys.argv)
-    main2()
-    
+    s = HandSerial()
+    s.startProcess()
+
+    test(s)
+        #main(s)
+    #except Exception:
+     #   print('Chaito')
+      #  s.stopProcess()
