@@ -28,7 +28,7 @@ class SerialHandler(QObject):
         self.running = False
         self.pause = False
         self.thread = threading.Thread(target=self.serialHandlerThread)
-        self.device = 'COM10'
+        self.device = 'COM6'
         self.baudrate = 115200
         self.rate = 1000000000000000000000
 

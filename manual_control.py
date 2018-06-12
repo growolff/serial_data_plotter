@@ -184,28 +184,57 @@ def main(HandSerial):
     s.stopProcess()
 
 def test(HandSerial):
-
-    #cmd = MotorCommand()
-    s.cmd.cmd = ord('C')
+        
+    s.cmd.cmd = ord('n')
     s.cmd.motor = 1
-    s.cmd.dpin = ord('E')
+    s.cmd.dpin = ord('A')
     s.cmd.onoff = 1
-    s.cmd.ctrl = ord('S')
+    s.cmd.ctrl = ord('A')
     s.cmd.asd = 0
     s.cmd.value = 255
-
-    #s.cmd.serialize(buff)
-
-
-    #s.send_command(buff)
-    s.send_command_old('i')
-    
-    time.sleep(1)
-
     s.send_command()
+
+    time.sleep(1)
+    
+    s.cmd.cmd = ord('A')
+    s.cmd.motor = 1
+    s.cmd.dpin = ord('A')
+    s.cmd.onoff = 1
+    s.cmd.ctrl = ord('A')
+    s.cmd.asd = 0
+    s.cmd.value = 255
+    s.send_command()
+
+    time.sleep(1)
+    s.send_command_old('n')
+
+    time.sleep(1)
+    s.cmd.cmd = ord('i')
+    s.cmd.motor = 1
+    s.cmd.dpin = ord('A')
+    s.cmd.onoff = 1
+    s.cmd.ctrl = ord('A')
+    s.cmd.asd = 0
+    s.cmd.value = 255
+    s.send_command()
+
+
+    #time.sleep(1)
+
+    
     #print((buff.getvalue()))
 
-    time.sleep(5)
+    s.cmd.cmd = ord('C')
+    s.cmd.motor = 1
+    s.cmd.dpin = ord('S')
+    s.cmd.onoff = 1
+    s.cmd.ctrl = ord('E')
+    s.cmd.asd = 0
+    s.cmd.value = 255
+    s.send_command()
+
+
+    time.sleep(2)
     s.stopProcess()
 
 if __name__ == "__main__":
