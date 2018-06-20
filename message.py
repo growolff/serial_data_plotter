@@ -22,6 +22,15 @@ class MotorCommand(object):
         #except struct.error as se:
         #    raise SerializationError('Error in serialization %s' % (self.__str__))
 
+    def fromTuple(self, data):
+        self.cmd = data.cmd
+        self.motor = data.motor
+        self.dpin = data.dpin
+        self.onoff = data.onoff
+        self.ctrl = data.ctrl
+        self.asd = data.asd
+        self.value = data.value
+
 def to_hex(data):
     return ":".join("{:02x}".format(c) for c in data)
 
@@ -41,7 +50,7 @@ def test():
     CMD.serialize(buff)
 
     print(to_hex(buff.getvalue()))
-    
+
 
 if __name__ == '__main__':
 

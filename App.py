@@ -44,7 +44,7 @@ class App(QApplication):
         self.configurePyQtGraph()
 
         # Serial configurator
-        self.device = 'COM10'
+        self.device = 'COM6'
         self.baudrate = 115200
 
         # Prepare Serial handler
@@ -114,6 +114,22 @@ class App(QApplication):
         self.main.refSlider.valueChanged.connect(self.refSliderMoved)
         self.main.refSlider.sliderReleased.connect(self.refSliderReleased)
 
+    def actionRefreshButton(self):
+        # read available interfaces
+        serialDevices   = getSerialDevices()
+        serialBaudrates = getSerialBaudrates()
+
+        self.main.comboBoxDevices.clear()
+
+        for dev in serialDevices:
+            self.main.comboBoxDevices.addItem(dev)
+            self.main.comboBoxDevices.setCurrentIndex(serialDevices.index(self.device))
+
+        if serialDevices:
+            for baud in serialBaudrates:
+                self.main.comboBoxBaudrates.addItem(str(baud))
+                self.main.comboBoxBaudrates.setCurrentIndex(serialBaudrates.index(self.baudrate))
+
     def actionSelectButton(self):
         self.device = self.main.comboBoxDevices.currentText()
 
@@ -143,21 +159,12 @@ class App(QApplication):
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
 
-    def actionRefreshButton(self):
-        # read available interfaces
-        serialDevices   = getSerialDevices()
-        serialBaudrates = getSerialBaudrates()
+        self.serialHandler.sendMsg.emit('n\n') # receive controller type
+        self.actionSelectController()
 
-        self.main.comboBoxDevices.clear()
-
-        for dev in serialDevices:
-            self.main.comboBoxDevices.addItem(dev)
-            self.main.comboBoxDevices.setCurrentIndex(serialDevices.index(self.device))
-
-        if serialDevices:
-            for baud in serialBaudrates:
-                self.main.comboBoxBaudrates.addItem(str(baud))
-                self.main.comboBoxBaudrates.setCurrentIndex(serialBaudrates.index(self.baudrate))
+        self.serialHandler.sendMsg.emit('b\n')
+        self.serialHandler.sendMsg.emit('i\n')
+        time.sleep(0.1)
 
     def actionResetButton(self):
         self.serialHandler.sendMsg.emit('q\n')
@@ -170,7 +177,10 @@ class App(QApplication):
         self.main.buttonBrake.setEnabled(False)
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
-
+        
+        self.serialHandler.sendMsg.emit('b\n')
+        self.serialHandler.sendMsg.emit('i\n')
+        time.sleep(0.1)
         
     def actionStartButton(self):
         self.main.buttonStop.setEnabled(True)
@@ -179,10 +189,8 @@ class App(QApplication):
         self.main.buttonStart.setEnabled(False)
         self.main.buttonSend.setEnabled(True)
 
-        self.serialHandler.sendMsg.emit('n\n') # receive controller type
-        self.actionSelectController()
-        self.serialHandler.sendMsg.emit('i\n')
-        time.sleep(0.1)
+        
+        
         self.showData = True
         
         if self.isMoving == False:

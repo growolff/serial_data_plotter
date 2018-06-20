@@ -8,20 +8,21 @@ import serial
 import time
 
 from threading import Lock, Thread
+from collections import namedtuple
 
-from PyQt5.Qt import *
-from pyqtgraph.Qt import QtCore, QtGui
+#from PyQt5.Qt import *
+#from pyqtgraph.Qt import QtCore, QtGui
 from array import array
 
 from message import *
 
 from io import BytesIO
-
+'''
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
         #QMainWindow.__init__(self)
-        
+
         self.s = SerialHandler()
         self.s.send_command('q\n')
 
@@ -57,11 +58,11 @@ class Window(QMainWindow):
         msg = "%s\n"%(self.textbox.text())
         self.s.send_command(msg)
         self.textbox.setText("")
-
+'''
 class HandSerial(object):
     def __init__(self):
 
-        self.device = 'COM5'
+        self.device = 'COM4'
         self.baudrate = 115200
         self.running = False
 
@@ -109,7 +110,7 @@ class HandSerial(object):
         base_cmd_int = bytearray(buff.getvalue())
         checksum = 255 - ( sum(base_cmd_int) % 256 )
         # Packet: FF  FF  BASE_CMD  CHECKSUM
-        packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([checksum])
+        packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([checksum]) + bytearray([0x0D])
         packet_str = array('B', packet).tostring()
         with self.serial_mutex:
             self.write_serial(packet_str)
@@ -133,8 +134,8 @@ class HandSerial(object):
 
             try:
                 #print('Reading messages')
-                #msg = self.ser.readline().decode()  # decode special characters from the message
-                msg = self.ser.readline()          # show the message as it is
+                msg = self.ser.readline().decode()  # decode special characters from the message
+                #msg = self.ser.readline()          # show the message as it is
             except Exception as e:
                 print("reading error")
 
@@ -159,7 +160,7 @@ def main(HandSerial):
     s.send_command('W1D1')
     time.sleep(1)
     s.send_command('W1D0')
-    #s.send_command('b\n')    
+    #s.send_command('b\n')
     #time.sleep(1)
 
     # Mensaje para cambiar controlador
@@ -169,15 +170,15 @@ def main(HandSerial):
 
     #s.send_command('b\n')
     #s.send_command('s\n')
-    #s.send_command('?2\n')    
-    #s.send_command('0211000\n')  # 0 - MOTOR - CONTROL - REF ; ej: 021-20 -> motor 2, control position, -20 
+    #s.send_command('?2\n')
+    #s.send_command('0211000\n')  # 0 - MOTOR - CONTROL - REF ; ej: 021-20 -> motor 2, control position, -20
     #s.send_command('013500\n')
 
 
     #time.sleep(3)
     #s.send_command('021-0\n')
     #s.send_command('0210\n')
-    
+
     #s.send_command('013100\n')
     #s.send_command('013100\n')
 
@@ -185,27 +186,48 @@ def main(HandSerial):
 
 def test(HandSerial):
 
-    #cmd = MotorCommand()
-    s.cmd.cmd = ord('C')
+    definedCommand = namedtuple('definedCommand',['cmd','motor','dpin','onoff','ctrl','asd','value'])
+    iniciar = definedCommand(ord('i'),1,ord('0'),1,ord('0'),1,value=255)
+    print(iniciar)
+
+    turnOnRed = definedCommand(ord('W'),1,ord('E'),1,ord('S'),1,value=255)
+    turnOffRed = definedCommand(ord('W'),1,ord('E'),0,ord('S'),1,value=255)
+    turnOnBlue = definedCommand(ord('W'),1,ord('B'),1,ord('S'),1,value=255)
+    turnOffBlue = definedCommand(ord('W'),1,ord('B'),0,ord('S'),1,value=255)
+    turnOnGreen = definedCommand(ord('W'),1,ord('D'),1,ord('S'),1,value=255)
+    turnOffGreen = definedCommand(ord('W'),1,ord('D'),0,ord('S'),1,value=255)
+
+    s.cmd.cmd = ord('W')#C
     s.cmd.motor = 1
-    s.cmd.dpin = ord('E')
+    s.cmd.dpin = ord('E')#E
     s.cmd.onoff = 1
-    s.cmd.ctrl = ord('S')
-    s.cmd.asd = 0
-    s.cmd.value = 255
+    s.cmd.ctrl = ord('S')#S
+    s.cmd.asd = 24
+    s.cmd.value = 100
 
-    #s.cmd.serialize(buff)
-
-
-    #s.send_command(buff)
-    s.send_command_old('i')
-    
+    s.cmd.fromTuple(iniciar)
+    s.send_command()
     time.sleep(1)
 
+    s.cmd.fromTuple(turnOnRed)
     s.send_command()
-    #print((buff.getvalue()))
+    time.sleep(1)
 
-    time.sleep(5)
+    s.cmd.fromTuple(turnOffRed)
+    s.send_command()
+    s.cmd.fromTuple(turnOnBlue)
+    s.send_command()
+    time.sleep(1)
+
+    s.cmd.fromTuple(turnOffBlue)
+    s.send_command()
+    s.cmd.fromTuple(turnOnGreen)
+    s.send_command()
+    time.sleep(1)
+
+    s.cmd.fromTuple(turnOffGreen)
+    s.send_command()
+
     s.stopProcess()
 
 if __name__ == "__main__":
