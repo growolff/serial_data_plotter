@@ -187,6 +187,15 @@ def main(HandSerial):
 
 def test(HandSerial):
 
+    s.cmd.cmd = ord('n')
+    s.cmd.motor = 1
+    s.cmd.dpin = ord('A')
+    s.cmd.onoff = 1
+    s.cmd.ctrl = ord('A')
+    s.cmd.asd = 0
+    s.cmd.value = 255
+    s.send_command()
+
     definedCommand = namedtuple('definedCommand',['cmd','motor','dpin','onoff','ctrl','valstr'])
     iniciar = definedCommand(ord('i'),1,ord('0'),1,ord('0'),valstr=255)
     print(iniciar)
