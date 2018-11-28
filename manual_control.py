@@ -17,48 +17,7 @@ from array import array
 from message import *
 
 from io import BytesIO
-'''
-class Window(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        #QMainWindow.__init__(self)
 
-        self.s = SerialHandler()
-        self.s.send_command('q\n')
-
-        #self.button = QtGui.QPushButton('Test', self)
-        self.textbox = QLineEdit(self)
-        self.textbox.move(10, 20)
-        self.textbox.resize(100,20)
-
-        #self.button.clicked.connect(self.on_click)
-        self.textbox.returnPressed.connect(self.on_click)
-
-        self.grid = QGridLayout()
-        self.grid.setSpacing(10)
-
-        self.grid.addWidget(self.textbox,0,0)
-        #self.grid.addWidget(self.button,1,0)
-
-        #self.setLayout(self.grid)
-
-        self.destroyed.connect(self.closeEvent)
-        self.show()
-
-    def closeEvent(self, event):
-        self.s.stopProcess()
-        event.accept()
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.s.stopProcess()
-
-    @pyqtSlot()
-    def on_click(self):
-        #textboxValue = self.textbox.text()
-        msg = "%s\n"%(self.textbox.text())
-        self.s.send_command(msg)
-        self.textbox.setText("")
-'''
 class HandSerial(object):
     def __init__(self):
 
@@ -105,13 +64,15 @@ class HandSerial(object):
         buff = BytesIO()
         self.cmd.serialize(buff)
 
-        print(to_hex(buff.getvalue()))
+        #print(to_hex(buff.getvalue()))
+        print(buff.getvalue())
 
         base_cmd_int = bytearray(buff.getvalue())
         #checksum = 255 - ( sum(base_cmd_int) % 256 )
         # Packet: FF  FF  BASE_CMD  CHECKSUM
         #packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([checksum]) + bytearray([0x0D])
-        packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([0x0D])
+        #packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([0x0D])
+        packet = bytearray([0xFF,0xFF]) + base_cmd_int + bytearray([0x0D])
         packet_str = array('B', packet).tostring()
         with self.serial_mutex:
             self.write_serial(packet_str)
@@ -141,65 +102,23 @@ class HandSerial(object):
                 print("reading error: %s",e)
 
             if msg:
-                s.handle_data(msg)
+                self.handle_data(msg)
 
         self.ser.close()
 
 
-def main(HandSerial):
-    #s.send_command('n') # needed to ask for PID params
-    s.send_command('i') # needed for finishing starting loop
-
-    s.send_command('W1E1')
-    time.sleep(1)
-    s.send_command('W1E0')
-    #time.sleep(0.001)
-    s.send_command('W1B1')
-    time.sleep(1)
-    s.send_command('W1B0')
-    #time.sleep(0.001)
-    s.send_command('W1D1')
-    time.sleep(1)
-    s.send_command('W1D0')
-    #s.send_command('b\n')
-    #time.sleep(1)
-
-    # Mensaje para cambiar controlador
-    #s.send_command('CXXXS0100') # P/S/T: pos/speed/tens | 0/1: neg/pos | 100: value
-
-    s.send_command('CXXXS0100')
-
-    #s.send_command('b\n')
-    #s.send_command('s\n')
-    #s.send_command('?2\n')
-    #s.send_command('0211000\n')  # 0 - MOTOR - CONTROL - REF ; ej: 021-20 -> motor 2, control position, -20
-    #s.send_command('013500\n')
-
-
-    #time.sleep(3)
-    #s.send_command('021-0\n')
-    #s.send_command('0210\n')
-
-    #s.send_command('013100\n')
-    #s.send_command('013100\n')
-
-    s.stopProcess()
-
 def test(HandSerial):
 
-    s.cmd.cmd = ord('n')
-    s.cmd.motor = 1
-    s.cmd.dpin = ord('A')
-    s.cmd.onoff = 1
-    s.cmd.ctrl = ord('A')
-    s.cmd.asd = 0
-    s.cmd.value = 255
+    s.cmd.id = 0 # si es cero no funciona, pero se corrige con los dos \xff al comienzo
+    s.cmd.cmd = 1
+    s.cmd.pref = 00
+    s.cmd.tref = 255
     s.send_command()
 
     definedCommand = namedtuple('definedCommand',['cmd','motor','dpin','onoff','ctrl','valstr'])
-    iniciar = definedCommand(ord('i'),1,ord('0'),1,ord('0'),valstr=255)
-    print(iniciar)
-
+    #iniciar = definedCommand(ord('i'),1,ord('0'),1,ord('0'),valstr=255)
+    #print(iniciar)
+    '''
     turnOnRed = definedCommand(ord('W'),1,ord('E'),1,ord('S'),valstr=255)
     turnOffRed = definedCommand(ord('W'),1,ord('E'),0,ord('S'),valstr=255)
     turnOnBlue = definedCommand(ord('W'),1,ord('B'),1,ord('S'),valstr=255)
@@ -230,25 +149,17 @@ def test(HandSerial):
     s.cmd.fromTuple(turnOffGreen)
     s.send_command()
     time.sleep(1)
-
-    s.cmd.cmd = ord('C')#C
-    s.cmd.motor = 1
-    s.cmd.dpin = ord('E')#E
-    s.cmd.onoff = 1
-    s.cmd.ctrl = ord('S')#S
-    s.cmd.valstr = 256
-    s.send_command()
+    '''
 
     time.sleep(1)
     s.stopProcess()
 
 if __name__ == "__main__":
-    #main(sys.argv)
+
     s = HandSerial()
     s.startProcess()
-
-    test(s)
-        #main(s)
-    #except Exception:
-     #   print('Chaito')
-      #  s.stopProcess()
+    try:
+        test(s)
+    except Exception:
+        print('Chaito')
+        s.stopProcess()
