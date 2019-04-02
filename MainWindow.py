@@ -75,10 +75,12 @@ class MainWindow(QMainWindow):
         self.buttonStop.setShortcut('s')
 
         # Motor HandBrake button
+        '''
         self.buttonBrake = QPushButton("BRAKEn")
         self.buttonsUI.addWidget(self.buttonBrake, row=4, col=1)
         self.buttonBrake.setShortcut('b')
         self.buttonBrake.setStyleSheet('QPushButton {color: red;}')
+        '''
 
         #
         self.labelControl = QLabel("Controlador", self)

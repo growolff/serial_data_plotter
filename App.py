@@ -77,7 +77,7 @@ class App(QApplication):
         self.logFilename = None
 
         # set initial buttons states
-        self.main.buttonBrake.setEnabled(False)
+        # # self.main.buttonBrake.setEnabled(False)
         self.main.buttonStart.setEnabled(False)
         self.main.buttonStop.setEnabled(False)
         self.main.buttonReset.setEnabled(False)
@@ -113,7 +113,7 @@ class App(QApplication):
         self.main.buttonRefresh.clicked.connect(self.actionRefreshButton)
         self.main.buttonReset.clicked.connect(self.actionResetButton)
         self.main.buttonStart.clicked.connect(self.actionStartButton)
-        self.main.buttonBrake.clicked.connect(self.actionBrakeButton)
+        # self.main.buttonBrake.clicked.connect(self.actionBrakeButton)
         self.main.buttonStop.clicked.connect(self.actionStopButton)
         self.main.buttonSelectController.clicked.connect(self.actionSelectController)
         self.main.pSlider.valueChanged.connect(self.setPValue)
@@ -164,7 +164,7 @@ class App(QApplication):
         self.main.buttonSelect.setEnabled(False)
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
-        self.main.buttonBrake.setEnabled(False)
+        # self.main.buttonBrake.setEnabled(False)
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
 
@@ -187,7 +187,7 @@ class App(QApplication):
 
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
-        self.main.buttonBrake.setEnabled(False)
+        # self.main.buttonBrake.setEnabled(False)
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
 
@@ -197,7 +197,7 @@ class App(QApplication):
 
     def actionStartButton(self):
         self.main.buttonStop.setEnabled(True)
-        self.main.buttonBrake.setEnabled(True)
+        # self.main.buttonBrake.setEnabled(True)
         self.main.buttonSelectController.setEnabled(False)
         self.main.buttonStart.setEnabled(False)
         self.main.buttonSend.setEnabled(True)
@@ -236,17 +236,17 @@ class App(QApplication):
         #self.logHandler.writerow(header)
         print('created %s' % self.logFilename)
 
+        '''
     def actionBrakeButton(self):
         if self.isMoving == True:
             self.brake()
         else:
             self.move()
-
+        '''
 
     def brake(self):
-        self.sendCMD(0,20,0,0,0,0,0) #stop sending data and stop enable
-
-        self.sendCMD(0,24,0,0,0,0,0)
+        self.sendCMD(0,20,0,0,0,0,0) # stop sending data
+        self.sendCMD(0,24,0,0,0,0,0) # toggle enable 0
 
         #self.serialHandler.sendMsg.emit('b\n')
         self.changeBrakenButton()
@@ -262,7 +262,7 @@ class App(QApplication):
     def actionStopButton(self):
         self.main.buttonStart.setEnabled(False)
         self.main.buttonStop.setEnabled(True)
-        self.main.buttonBrake.setEnabled(False)
+        # self.main.buttonBrake.setEnabled(False)
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
         self.main.buttonSelectController.setEnabled(True)
@@ -271,9 +271,6 @@ class App(QApplication):
             self.brake()
         else:
             self.move()
-
-        if self.isMoving == True:
-            self.brake()
 
         #self.isLogging = False
         #self.logFile.close()
@@ -287,19 +284,16 @@ class App(QApplication):
             self.main.buttonStop.setText("STOP")
             self.main.buttonStop.setStyleSheet('QPushButton {color: red ;}')
 
+
     def actionSelectController(self):
 
         if self.main.comboBoxController.currentText() != self.selectedController:
             self.selectedController = self.main.comboBoxController.currentText()
             self.main.refSliderLabel.setText(self.selectedController)
             if self.selectedController == 'Position':
-                controlSelectCMD = self.CMD(0,13,-1,0,0,0,0) # set position control mode
-                self.cmd.fromTuple(controlSelectCMD)
-                self.serialHandler.send_command(self.cmd)
+                self.sendCMD(0,13,-1,0,0,0,0) # set position control mode
+                self.sendCMD(0,12,-1,0,0,0,0)  # request PID values
 
-                askparams = self.CMD(0,12,-1,0,0,0,0) # request PID values
-                self.cmd.fromTuple(askparams)
-                self.serialHandler.send_command(self.cmd)
                 #self.serialHandler.sendCompoundMsg.emit('?',1)
                 self.selectPositionController()
             elif self.selectedController == 'Speed':
@@ -322,17 +316,12 @@ class App(QApplication):
 
             self.main.mainPlot.clearData()
 
-            self.main.buttonBrake.setEnabled(False)
+            # self.main.buttonBrake.setEnabled(False)
             #self.main.buttonStart.setEnabled(True)
         elif self.selectedController == 'Position':
-            controlSelectCMD = self.CMD(0,13,-1,0,0,0,0) # set position control mode
-            self.cmd.fromTuple(controlSelectCMD)
-            self.serialHandler.send_command(self.cmd)
+            self.sendCMD(0,13,-1,0,0,0,0) # set position control mode
+            self.sendCMD(0,12,-1,0,0,0,0)  # request PID values
 
-            askparams = self.CMD(0,12,-1,0,0,0,0) # request PID values
-            self.cmd.fromTuple(askparams)
-            self.serialHandler.send_command(self.cmd)
-            #self.serialHandler.sendCompoundMsg.emit('?',1)
 
     def selectPositionController(self):
         self.main.refSliderLabel.setText('Position Ref')
@@ -371,17 +360,20 @@ class App(QApplication):
         self.main.dValue.setText(str(self.main.dSlider.value()/self.main.factor))
         #self.serialHandler.sendCompoundMsg.emit('D',self.main.dSlider.value())
     def actionSendButton(self):
-        self.serialHandler.sendCompoundMsg.emit('P',self.main.pSlider.value())
-        self.serialHandler.sendCompoundMsg.emit('I',self.main.iSlider.value())
-        self.serialHandler.sendCompoundMsg.emit('D',self.main.dSlider.value())
+        P = self.main.pSlider.value()
+        I = self.main.iSlider.value()
+        D = self.main.dSlider.value()
+        self.sendCMD(0,14,0,0,P,I,D)
         self.main.mainPlot.clearData()
 
     def refSliderMoved(self):
         self.main.refSliderValue.setText(str(self.main.refSlider.value()))
 
     def refSliderReleased(self):
+        value = self.main.refSlider.value()
         if self.selectedController == 'Position':
-            self.serialHandler.sendCompoundMsg.emit('!',self.main.refSlider.value())
+            self.sendCMD(0,1,value,0,0,0,0) # set position reference
+            # self.serialHandler.sendCompoundMsg.emit('!',self.main.refSlider.value())
         elif self.selectedController == 'Speed':
             self.serialHandler.sendCompoundMsg.emit('#',self.main.refSlider.value())
         elif self.selectedController == 'Tension':
