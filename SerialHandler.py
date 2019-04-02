@@ -3,6 +3,13 @@ import threading
 import serial
 import time
 
+from collections import namedtuple
+from message import MotorCommand
+
+from array import array
+
+from io import BytesIO
+
 """
 Class Serial handler
 
@@ -28,7 +35,7 @@ class SerialHandler(QObject):
         self.running = False
         self.pause = False
         self.thread = threading.Thread(target=self.serialHandlerThread)
-        self.device = 'COM6'
+        self.device = 'COM4'
         self.baudrate = 115200
         self.rate = 1000000000000000000000
 
@@ -45,6 +52,11 @@ class SerialHandler(QObject):
         self.compound = None
         self.refMsg = None
 
+        self.cmd = MotorCommand()
+        self.serial_mutex = threading.Lock()
+
+        self.ser = serial.Serial(self.device, self.baudrate, timeout=0.1)
+
     def __exit__(self, exc_type, exc_value, traceback):
         self.stopProcess()
 
@@ -54,6 +66,49 @@ class SerialHandler(QObject):
 
     def isRunning(self):
         return (self.running or not self.pause)
+
+    def to_hex(self,data):
+        return ":".join("{:02x}".format(c) for c in data)
+
+    def send_command(self,command):
+
+        self.set_command(command)
+
+        buff = BytesIO()
+        self.cmd.serialize(buff)
+
+        print(self.to_hex(buff.getvalue()))
+        #print(buff.getvalue())
+
+        base_cmd_int = bytearray(buff.getvalue())
+        #checksum = 255 - ( sum(base_cmd_int) % 256 )
+        # Packet: FF  FF  BASE_CMD  CHECKSUM
+        #packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([checksum]) + bytearray([0x0D])
+
+        packet = bytearray([0xFF,0xFF]) + base_cmd_int + bytearray([0x0D])
+        packet_str = array('B', packet).tostring()
+        with self.serial_mutex:
+            self.write_serial(packet_str)
+
+    def write_serial(self, data):
+        """
+        Write in the serial port.
+        """
+        #print(self.cmd)
+        #print("Hex: {}".format(to_hex(data)))
+        self.ser.flushInput()
+        self.ser.flushOutput()
+        self.ser.write(data)
+
+    def set_command(self,command):
+
+        self.cmd.id = command.id
+        self.cmd.cmd = command.cmd
+        self.cmd.pref = command.pref
+        self.cmd.tref = command.tref
+        self.cmd.P = command.P
+        self.cmd.I = command.I
+        self.cmd.D = command.D
 
     @pyqtSlot()
     def flush(self):
@@ -94,7 +149,6 @@ class SerialHandler(QObject):
 
     # main thread
     def serialHandlerThread(self):
-        self.ser = serial.Serial(self.device, self.baudrate, timeout=0.1)
 
         while self.running is True:
 
@@ -117,7 +171,7 @@ class SerialHandler(QObject):
 
             if msg:
                 try:
-                    #print(msg)
+                    print("> %s"%(msg))
                     if not self.pause:
                         self.bufferUpdated.emit(str(msg, 'utf-8'))
                 except ValueError as e:

@@ -4,17 +4,20 @@ import struct
 
 class MotorCommand(object):
 
-    _struct = struct.Struct('<BBhh')
+    _struct = struct.Struct('<BBhhhhh')
 
     def __init__(self):
         self.id = 0
         self.cmd = 0
         self.pref = 0
         self.tref = 0
+        self.P = 0
+        self.I = 0
+        self.D = 0
 
     def serialize(self, buff):
         #try
-        buff.write(MotorCommand._struct.pack(self.id, self.cmd, self.pref, self.tref))
+        buff.write(MotorCommand._struct.pack(self.id, self.cmd, self.pref, self.tref, self.P, self.I, self.D))
         #except struct.error as se:
         #    raise SerializationError('Error in serialization %s' % (self.__str__))
 
@@ -23,6 +26,10 @@ class MotorCommand(object):
         self.cmd = data.cmd
         self.pref = data.pref
         self.tref = data.tref
+        self.P = data.P
+        self.I = data.I
+        self.D = data.D
+
 
 def to_hex(data):
     return ":".join("{:02x}".format(c) for c in data)

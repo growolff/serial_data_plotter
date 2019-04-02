@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
 
         # Window configuration
         self.mainPlot = SensorPlot('Plot', self)
-
+        self.factor = 1000.0
         # Configure Window
         self.configureWindow()
 
@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
         self.buttonBrake.setShortcut('b')
         self.buttonBrake.setStyleSheet('QPushButton {color: red;}')
 
-        # 
+        #
         self.labelControl = QLabel("Controlador", self)
         self.buttonsUI.addWidget(self.labelControl, row=5, col=0)
         self.comboBoxController = QComboBox(self)
@@ -106,7 +106,7 @@ class MainWindow(QMainWindow):
         self.pValue = QLabel("0",self)
         self.pSlider = QSlider(Qt.Horizontal)
         self.pSlider.setMinimum(0)
-        self.pSlider.setMaximum(300)
+        self.pSlider.setMaximum(2*self.factor)
         self.slidersUI.addWidget(self.pLabel, row=0,col=0)
         self.slidersUI.addWidget(self.pSlider, row=0,col=1)
         self.slidersUI.addWidget(self.pValue, row=0,col=2)
@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         self.iValue = QLabel("0",self)
         self.iSlider = QSlider(Qt.Horizontal)
         self.iSlider.setMinimum(0)
-        self.iSlider.setMaximum(200)
+        self.iSlider.setMaximum(2*self.factor)
         self.slidersUI.addWidget(self.iLabel, row=1,col=0)
         self.slidersUI.addWidget(self.iSlider, row=1,col=1)
         self.slidersUI.addWidget(self.iValue, row=1,col=2)
@@ -130,7 +130,7 @@ class MainWindow(QMainWindow):
         self.dValue = QLabel("0",self)
         self.dSlider = QSlider(Qt.Horizontal)
         self.dSlider.setMinimum(0)
-        self.dSlider.setMaximum(200)
+        self.dSlider.setMaximum(2*self.factor)
         self.slidersUI.addWidget(self.dLabel, row=2,col=0)
         self.slidersUI.addWidget(self.dSlider, row=2,col=1)
         self.slidersUI.addWidget(self.dValue, row=2,col=2)

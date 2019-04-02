@@ -6,6 +6,7 @@ class Data(object):
 
 def serialParser(msg):
 
+    auxSeparator = '&'
     charParamsSeparator = '*'
     charDataSeparator = '\t'
     charMessageSeparator = ' '
@@ -28,15 +29,17 @@ def serialParser(msg):
         #print(pid)
         return pid
 
-    # separate message in parts
-    variables = msg.split(charDataSeparator)
-    dataArray = list()
+    if msg[0] == "#":
+        msg.pop(0)
+        # separate message in parts
+        variables = msg.split(charDataSeparator)
+        dataArray = list()
 
-    # iterate over all the data and fill a dictionary with ids and measurements
-    for v in variables:
-        vAux = v.split(charMessageSeparator)
-        dataArray.append(Data(vAux[0],vAux[1]))
+        # iterate over all the data and fill a dictionary with ids and measurements
+        for v in variables:
+            vAux = v.split(charMessageSeparator)
+            dataArray.append(Data(vAux[0],vAux[1]))
 
-    grahps = dict([ (d.msg, d.value) for d in dataArray ])
+        grahps = dict([ (d.msg, d.value) for d in dataArray ])
 
-    return grahps
+        return grahps

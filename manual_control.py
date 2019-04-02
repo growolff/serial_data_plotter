@@ -71,7 +71,7 @@ class HandSerial(object):
         #checksum = 255 - ( sum(base_cmd_int) % 256 )
         # Packet: FF  FF  BASE_CMD  CHECKSUM
         #packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([checksum]) + bytearray([0x0D])
-        #packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([0x0D])
+
         packet = bytearray([0xFF,0xFF]) + base_cmd_int + bytearray([0x0D])
         packet_str = array('B', packet).tostring()
         with self.serial_mutex:
@@ -106,18 +106,39 @@ class HandSerial(object):
 
         self.ser.close()
 
-
 def test(HandSerial):
 
     s.cmd.id = 0 # si es cero no funciona, pero se corrige con los dos \xff al comienzo
-    s.cmd.cmd = 1
-    s.cmd.pref = 00
+    s.cmd.cmd = 12
+    s.cmd.pref = 0
     s.cmd.tref = 255
-    s.send_command()
+    s.cmd.P = 1500
+    s.cmd.I = 0
+    s.cmd.D = 0
+    #s.send_command()
 
-    definedCommand = namedtuple('definedCommand',['cmd','motor','dpin','onoff','ctrl','valstr'])
+    comm = namedtuple('comm', 'id cmd pref tref P I D')
     #iniciar = definedCommand(ord('i'),1,ord('0'),1,ord('0'),valstr=255)
     #print(iniciar)
+
+    moverLeft = comm(0,1,-100,0,0,0,0)
+
+    moverRight = comm(0,1,100,0,0,0,0)
+
+    getData = comm(0,12,0,0,0,0,0)
+    #s.cmd.fromTuple(getData)
+    #s.send_command()
+
+    time.sleep(2)
+    s.cmd.fromTuple(moverLeft)
+    s.send_command()
+    #print(moverLeft)
+
+    time.sleep(2)
+    s.cmd.fromTuple(moverRight)
+    s.send_command()
+
+
     '''
     turnOnRed = definedCommand(ord('W'),1,ord('E'),1,ord('S'),valstr=255)
     turnOffRed = definedCommand(ord('W'),1,ord('E'),0,ord('S'),valstr=255)
