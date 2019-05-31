@@ -10,6 +10,8 @@ from array import array
 
 from io import BytesIO
 
+import struct
+
 """
 Class Serial handler
 
@@ -105,7 +107,6 @@ class SerialHandler(QObject):
         self.cmd.id = command.id
         self.cmd.cmd = command.cmd
         self.cmd.pref = command.pref
-        self.cmd.tref = command.tref
         self.cmd.P = command.P
         self.cmd.I = command.I
         self.cmd.D = command.D
@@ -135,17 +136,6 @@ class SerialHandler(QObject):
     @pyqtSlot(int)
     def setRate(self, rate):
         self.rate = rate
-
-    @pyqtSlot(str)
-    def emitAlone(self,command):
-        self.alone = command
-        time.sleep(0.1)
-        #print ('tx callback: ', command,self.command, type(command), type(self.command))
-
-    @pyqtSlot(str,float)
-    def emitCompound(self,command,value):
-        self.compound = "%s%d\n"%(command,value)
-        time.sleep(0.1)
 
     # main thread
     def serialHandlerThread(self):

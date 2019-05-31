@@ -85,10 +85,10 @@ class App(QApplication):
         self.main.buttonSelectController.setEnabled(False)
 
         self.cmd = MotorCommand()
-        self.CMD = namedtuple('CMD', 'id cmd pref tref P I D')
+        self.CMD = namedtuple('CMD', 'id cmd pref P I D')
 
-    def sendCMD(self,id,cmd,pref,tref,p,i,d):
-        cmd = self.CMD(id,cmd,pref,tref,p,i,d) # request PID values
+    def sendCMD(self,id,cmd,pref,p,i,d):
+        cmd = self.CMD(id,cmd,pref,p,i,d) # request PID values
         self.cmd.fromTuple(cmd)
         self.serialHandler.send_command(self.cmd)
 
@@ -124,7 +124,7 @@ class App(QApplication):
         self.main.refSlider.sliderReleased.connect(self.refSliderReleased)
 
     def actionRefreshButton(self):
-        # read available interfaces
+        # read available interes
         serialDevices   = getSerialDevices()
         serialBaudrates = getSerialBaudrates()
 
@@ -140,6 +140,7 @@ class App(QApplication):
                 self.main.comboBoxBaudrates.setCurrentIndex(serialBaudrates.index(self.baudrate))
 
     def actionSelectButton(self):
+        #self.sendCMD(0,99,0,0,0,0);
         self.device = self.main.comboBoxDevices.currentText()
 
         serialDevices = getSerialDevices()
@@ -169,30 +170,37 @@ class App(QApplication):
         self.main.buttonSend.setEnabled(True)
 
         #self.serialHandler.sendMsg.emit('n\n') # receive controller type
-        self.main.comboBoxController.setCurrentIndex(self.controllers.index('Position'))
+        self.main.comboBoxController.setCurrentIndex(self.controllers.index('Speed'))
         self.actionSelectController()
 
-        # prepare command to send to psoc
-        self.sendCMD(0,20,0,0,0,0,0) # stop data stream
+        self.sendCMD(0,20,0,0,0,0) # stop data stream
 
         #self.serialHandler.sendMsg.emit('b\n')
         #self.serialHandler.sendMsg.emit('i\n')
         time.sleep(0.5)
 
     def actionResetButton(self):
-        self.serialHandler.sendMsg.emit('q\n')
+        self.sendCMD(0,99,0,0,0,0) # psoc software reset
+        # self.serialHandler.sendMsg.emit('q\n')
         self.showData = False
         self.isMoving = False
         self.selectedController = None
 
+        self.main.buttonStart.setEnabled(False)
+        self.main.buttonStop.setEnabled(False)
+        # self.main.buttonBrake.setEnabled(False)
+        self.main.buttonReset.setEnabled(False)
+        self.main.buttonSend.setEnabled(False)
+
+        # self.serialHandler.sendMsg.emit('b\n')
+        # self.serialHandler.sendMsg.emit('i\n')
+        time.sleep(1)
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
         # self.main.buttonBrake.setEnabled(False)
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
-
-        self.serialHandler.sendMsg.emit('b\n')
-        self.serialHandler.sendMsg.emit('i\n')
+        self.actionSelectController()
         time.sleep(0.1)
 
     def actionStartButton(self):
@@ -207,8 +215,7 @@ class App(QApplication):
         if self.isMoving == False:
             self.move()
 
-
-        self.sendCMD(0,40,0,0,0,0,0) # continuously send data
+        # self.sendCMD(0,40,0,0,0,0) # continuously send data
         # self.serialHandler.sendMsg.emit('s\n')
 
         # start logging
@@ -245,16 +252,16 @@ class App(QApplication):
         '''
 
     def brake(self):
-        self.sendCMD(0,20,0,0,0,0,0) # stop sending data
-        self.sendCMD(0,24,0,0,0,0,0) # toggle enable 0
+        self.sendCMD(0,20,0,0,0,0) # stop sending data
+        self.sendCMD(0,24,0,0,0,0) # toggle enable 0
 
         #self.serialHandler.sendMsg.emit('b\n')
         self.changeBrakenButton()
         self.isMoving = False
 
     def move(self):
-        self.sendCMD(0,40,0,0,0,0,0) # resume sending data
-        self.sendCMD(0,44,0,0,0,0,0) # resume enable
+        self.sendCMD(0,40,0,0,0,0) # resume sending data
+        self.sendCMD(0,44,0,0,0,0) # resume enable
         self.changeBrakenButton()
         self.isMoving = True
 
@@ -291,42 +298,39 @@ class App(QApplication):
             self.selectedController = self.main.comboBoxController.currentText()
             self.main.refSliderLabel.setText(self.selectedController)
             if self.selectedController == 'Position':
-                self.sendCMD(0,13,-1,0,0,0,0) # set position control mode
-                self.sendCMD(0,12,-1,0,0,0,0)  # request PID values
-
-                #self.serialHandler.sendCompoundMsg.emit('?',1)
+                self.sendCMD(0,23,1,0,0,0,0) # set position control mode
+                self.sendCMD(0,22,1,0,0,0,0)  # request PID values
                 self.selectPositionController()
             elif self.selectedController == 'Speed':
-                controlSelectCMD = self.CMD(0,13,-1,0,0,0,0) # set velocity control mode
-                self.cmd.fromTuple(controlSelectCMD)
-                #self.serialHandler.sendCompoundMsg.emit('?',2)
+                controlSelectCMD = self.CMD(0,23,-1,0,0,0) # set velocity control mode
+                self.sendCMD(0,23,0,0,0,0) # set speed control mode
+                self.sendCMD(0,22,0,0,0,0)  # request PID values
                 self.selectSpeedController()
             elif self.selectedController == 'Tension':
-                controlSelectCMD = self.CMD(0,13,0,-1,0,0,0) # set tension control mode
+                controlSelectCMD = self.CMD(0,23,0,-1,0,0,0) # set tension control mode
                 self.cmd.fromTuple(controlSelectCMD)
                 self.serialHandler.send_command(self.cmd)
 
-                askparams = self.CMD(0,12,0,-1,0,0,0) # request PID values
+                askparams = self.CMD(0,22,0,-1,0,0,0) # request PID values
                 self.cmd.fromTuple(askparams)
                 self.serialHandler.send_command(self.cmd)
                 #self.serialHandler.sendCompoundMsg.emit('?',3)
                 self.selectTensionController()
-
-            self.serialHandler.send_command(self.cmd)
 
             self.main.mainPlot.clearData()
 
             # self.main.buttonBrake.setEnabled(False)
             #self.main.buttonStart.setEnabled(True)
         elif self.selectedController == 'Position':
-            self.sendCMD(0,13,-1,0,0,0,0) # set position control mode
-            self.sendCMD(0,12,-1,0,0,0,0)  # request PID values
+            self.selectPositionController()
+            self.sendCMD(0,23,1,0,0,0) # set position control mode
+            self.sendCMD(0,22,1,0,0,0)  # request PID values
 
 
     def selectPositionController(self):
         self.main.refSliderLabel.setText('Position Ref')
-        self.main.refSlider.setMinimum(-100)
-        self.main.refSlider.setMaximum(100)
+        self.main.refSlider.setMinimum(-500)
+        self.main.refSlider.setMaximum(500)
         self.main.refSlider.setTickInterval(10)
         self.main.refSlider.setValue(0)
         self.main.refSliderValue.setText('0')
@@ -334,7 +338,7 @@ class App(QApplication):
     def selectSpeedController(self):
         self.main.refSliderLabel.setText('Speed Ref')
         self.main.refSlider.setMinimum(0)
-        self.main.refSlider.setMaximum(9500)
+        self.main.refSlider.setMaximum(9000)
         self.main.refSlider.setTickInterval(500)
         self.main.refSlider.setValue(0)
         self.main.refSliderValue.setText('0')
@@ -349,21 +353,22 @@ class App(QApplication):
 
 
     def setPValue(self):
-        self.main.pValue.setText(str(self.main.pSlider.value()/self.main.factor))
+        self.main.pValue.setText(str(self.main.pSlider.value()))
         #self.serialHandler.sendCompoundMsg.emit('P',self.main.pSlider.value())
 
     def setIValue(self):
-        self.main.iValue.setText(str(self.main.iSlider.value()/self.main.factor))
+        self.main.iValue.setText(str(self.main.iSlider.value()))
         #self.serialHandler.sendCompoundMsg.emit('I',self.main.iSlider.value())
 
     def setDValue(self):
-        self.main.dValue.setText(str(self.main.dSlider.value()/self.main.factor))
+        self.main.dValue.setText(str(self.main.dSlider.value()))
         #self.serialHandler.sendCompoundMsg.emit('D',self.main.dSlider.value())
     def actionSendButton(self):
         P = self.main.pSlider.value()
         I = self.main.iSlider.value()
         D = self.main.dSlider.value()
-        self.sendCMD(0,14,0,0,P,I,D)
+        print(P,I,D)
+        self.sendCMD(0,25,0,P,I,D)
         self.main.mainPlot.clearData()
 
     def refSliderMoved(self):
@@ -371,11 +376,13 @@ class App(QApplication):
 
     def refSliderReleased(self):
         value = self.main.refSlider.value()
+        # print(value)
         if self.selectedController == 'Position':
-            self.sendCMD(0,1,value,0,0,0,0) # set position reference
+            self.sendCMD(0,1,value,0,0,0) # set position reference
             # self.serialHandler.sendCompoundMsg.emit('!',self.main.refSlider.value())
         elif self.selectedController == 'Speed':
-            self.serialHandler.sendCompoundMsg.emit('#',self.main.refSlider.value())
+            self.sendCMD(0,0,value,0,0,0) # set position reference
+            #self.serialHandler.sendCompoundMsg.emit('#',self.main.refSlider.value())
         elif self.selectedController == 'Tension':
             self.serialHandler.sendCompoundMsg.emit('$',self.main.refSlider.value())
 
@@ -389,9 +396,9 @@ class App(QApplication):
             self.main.pSlider.setValue(sensorData[0])
             self.main.iSlider.setValue(sensorData[1])
             self.main.dSlider.setValue(sensorData[2])
-            self.main.pValue.setText(str(sensorData[0]/1000))
-            self.main.iValue.setText(str(sensorData[1]/1000))
-            self.main.dValue.setText(str(sensorData[2]/1000))
+            self.main.pValue.setText(str(sensorData[0]))
+            self.main.iValue.setText(str(sensorData[1]))
+            self.main.dValue.setText(str(sensorData[2]))
         elif isinstance(sensorData,dict):
             # update plot
             #"Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)

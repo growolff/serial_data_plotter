@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
 
         # Window configuration
         self.mainPlot = SensorPlot('Plot', self)
-        self.factor = 1000.0
+        self.factor = 1000
         # Configure Window
         self.configureWindow()
 
@@ -98,7 +98,9 @@ class MainWindow(QMainWindow):
         self.refSlider.setMinimum(-50)
         self.refSlider.setMaximum(50)
         self.refSlider.setTickPosition(QSlider.TicksBelow)
-        self.refSlider.setTickInterval(10)
+        self.refSlider.setTickInterval(1)
+        self.refSlider.setSingleStep(1) # arrow-key step-size
+        self.refSlider.setPageStep(1) # mouse-wheel/page-key step-size
         self.buttonsUI.addWidget(self.refSliderLabel, row=7,col=0)
         self.buttonsUI.addWidget(self.refSlider, row=7,col=1)
         self.buttonsUI.addWidget(self.refSliderValue, row=7,col=2)
@@ -113,7 +115,7 @@ class MainWindow(QMainWindow):
         self.slidersUI.addWidget(self.pSlider, row=0,col=1)
         self.slidersUI.addWidget(self.pValue, row=0,col=2)
         self.pSlider.setTickPosition(QSlider.TicksBelow)
-        self.pSlider.setTickInterval(10)
+        self.pSlider.setTickInterval(1)
 
         # I slider
         self.iLabel = QLabel("kI",self)
@@ -125,7 +127,7 @@ class MainWindow(QMainWindow):
         self.slidersUI.addWidget(self.iSlider, row=1,col=1)
         self.slidersUI.addWidget(self.iValue, row=1,col=2)
         self.iSlider.setTickPosition(QSlider.TicksBelow)
-        self.iSlider.setTickInterval(10)
+        self.iSlider.setTickInterval(1)
 
         # D slider
         self.dLabel = QLabel("kD",self)
@@ -137,7 +139,7 @@ class MainWindow(QMainWindow):
         self.slidersUI.addWidget(self.dSlider, row=2,col=1)
         self.slidersUI.addWidget(self.dValue, row=2,col=2)
         self.dSlider.setTickPosition(QSlider.TicksBelow)
-        self.dSlider.setTickInterval(10)
+        self.dSlider.setTickInterval(1)
 
         # Send button
         self.buttonSend = QPushButton("Send")

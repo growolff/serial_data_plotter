@@ -23,23 +23,21 @@ def serialParser(msg):
 
     if msg[0] == "*":
         pid_params = msg.split(charParamsSeparator)
-        pid.append(float(pid_params[1]))
-        pid.append(float(pid_params[2]))
-        pid.append(float(pid_params[3]))
+        pid.append(float(pid_params[1])/4096)
+        pid.append(float(pid_params[2])/4096)
+        pid.append(float(pid_params[3])/4096)
         #print(pid)
         return pid
 
-    if msg[0] == "#":
-        msg.pop(0)
-        # separate message in parts
-        variables = msg.split(charDataSeparator)
-        dataArray = list()
+    # separate message in parts
+    variables = msg.split(charDataSeparator)
+    dataArray = list()
 
-        # iterate over all the data and fill a dictionary with ids and measurements
-        for v in variables:
-            vAux = v.split(charMessageSeparator)
-            dataArray.append(Data(vAux[0],vAux[1]))
+    # iterate over all the data and fill a dictionary with ids and measurements
+    for v in variables:
+        vAux = v.split(charMessageSeparator)
+        dataArray.append(Data(vAux[0],vAux[1]))
 
-        grahps = dict([ (d.msg, d.value) for d in dataArray ])
+    grahps = dict([ (d.msg, d.value) for d in dataArray ])
 
-        return grahps
+    return grahps

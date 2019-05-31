@@ -17,6 +17,9 @@ from array import array
 from message import *
 
 from io import BytesIO
+import ctypes
+
+from struct import *
 
 class HandSerial(object):
     def __init__(self):
@@ -26,6 +29,7 @@ class HandSerial(object):
         self.running = False
 
         self.cmd = MotorCommand()
+        self.CMD = namedtuple('CMD', 'id cmd pref P I D')
 
         self.serial_mutex = Lock()
 
@@ -65,7 +69,7 @@ class HandSerial(object):
         self.cmd.serialize(buff)
 
         #print(to_hex(buff.getvalue()))
-        print(buff.getvalue())
+        #print(buff.getvalue())
 
         base_cmd_int = bytearray(buff.getvalue())
         #checksum = 255 - ( sum(base_cmd_int) % 256 )
@@ -82,7 +86,8 @@ class HandSerial(object):
         Write in the serial port.
         """
         #print(self.cmd)
-        #print("Hex: {}".format(to_hex(data)))
+        print("Hex: {}".format(to_hex(data)))
+        #print("BIN: {}".format(to_byte(data)))
         self.ser.flushInput()
         self.ser.flushOutput()
         self.ser.write(data)
@@ -92,87 +97,114 @@ class HandSerial(object):
 
     def serialHandlerThread(self):
 
+        #RxBuff = struct.Struct('<BhhB')
+        struct_fmt = '<BBhhh'
+        struct_len = calcsize(struct_fmt)
+        #rxCom = namedtuple('rxCom','xff com ref cur val')
         while self.running is True:
+            #if self.ser.in_waiting > 0 :
+            try:
+                msg = self.ser.read(struct_len)  # show the message as it is
+                #print(msg) # b'a100000000'
+                ##MSG._make(unpack_from('<BBii', msg))
+                rxCom = unpack(struct_fmt, msg)
+                cur = rxCom[3]
+                print(cur)
+                #print(MSG.meas)
 
+                #self.handle_data(MSG.reference)
+
+            except Exception as e:
+                print("reading error: ",e)
+
+            '''
             try:
                 #print('Reading messages')
                 #msg = self.ser.readline().decode()  # decode special characters from the message
                 msg = self.ser.readline()          # show the message as it is
+                #com,ref,cur = unpack('=Bhh',self.ser.readline())
+
             except Exception as e:
                 print("reading error: %s",e)
 
             if msg:
-                self.handle_data(msg)
 
+                #print(calcsize('=Bhh'))
+            '''
         self.ser.close()
+
+    def sendCMD(self,id,cm,pref,p,i,d):
+        asd = self.CMD(id,cm,pref,p,i,d)
+        self.cmd.fromTuple(asd)
+        self.send_command()
 
 def test(HandSerial):
 
     s.cmd.id = 0 # si es cero no funciona, pero se corrige con los dos \xff al comienzo
     s.cmd.cmd = 12
     s.cmd.pref = 0
-    s.cmd.tref = 255
     s.cmd.P = 1500
     s.cmd.I = 0
     s.cmd.D = 0
     #s.send_command()
 
-    comm = namedtuple('comm', 'id cmd pref tref P I D')
-    #iniciar = definedCommand(ord('i'),1,ord('0'),1,ord('0'),valstr=255)
-    #print(iniciar)
+    s.sendCMD(0,40,0,0,0,0) # send data
+    time.sleep(1)
 
-    moverLeft = comm(0,1,-100,0,0,0,0)
+    s.sendCMD(0,23,0,0,0,0) # set control mode speed
+    time.sleep(1)
+    s.sendCMD(0,44,0,0,0,0) # enable motor
+    time.sleep(1)
 
-    moverRight = comm(0,1,100,0,0,0,0)
-
-    getData = comm(0,12,0,0,0,0,0)
-    #s.cmd.fromTuple(getData)
-    #s.send_command()
-
+    s.sendCMD(0,0,4000,0,0,0) # set speed ref
     time.sleep(2)
-    s.cmd.fromTuple(moverLeft)
-    s.send_command()
-    #print(moverLeft)
 
+    s.sendCMD(0,0,8000,0,0,0) # set speed ref
     time.sleep(2)
-    s.cmd.fromTuple(moverRight)
-    s.send_command()
 
+    s.sendCMD(0,0,4000,0,0,0) # set speed ref
+    time.sleep(2)
 
+    s.sendCMD(0,0,0,0,0,0) # set speed ref
+    time.sleep(1)
+
+    #s.sendCMD(0,1,100,0,0,0) # set reference
+    #time.sleep(1)
+
+    #s.sendCMD(0,25,0,200,0,0) # change pid
+    #time.sleep(1)
+
+    #s.sendCMD(0,1,-100,0,0,0) # set reference
+    #time.sleep(1)
+
+    #s.sendCMD(0,55,0,0,0,0)
+    #time.sleep(1)
     '''
-    turnOnRed = definedCommand(ord('W'),1,ord('E'),1,ord('S'),valstr=255)
-    turnOffRed = definedCommand(ord('W'),1,ord('E'),0,ord('S'),valstr=255)
-    turnOnBlue = definedCommand(ord('W'),1,ord('B'),1,ord('S'),valstr=255)
-    turnOffBlue = definedCommand(ord('W'),1,ord('B'),0,ord('S'),valstr=255)
-    turnOnGreen = definedCommand(ord('W'),1,ord('D'),1,ord('S'),valstr=255)
-    turnOffGreen = definedCommand(ord('W'),1,ord('D'),0,ord('S'),valstr=255)
+    s.sendCMD(0,25,0,200,10,0) # change pid
+    time.sleep(1)
 
+
+    #s.send_command
+    time.sleep(5)
+
+    setpid = comm(0,25,0,150,0,0) # change pid
+    s.cmd.fromTuple(setpid)
+    #s.send_command()
+    time.sleep(1)
+
+    moverRight = comm(0,1,100,0,0,0)
+    s.cmd.fromTuple(moverRight)
+    #s.send_command()
+    time.sleep(5)
+
+    iniciar = comm(0,24,0,0,0,0) # disable motor
     s.cmd.fromTuple(iniciar)
     s.send_command()
+
+
     time.sleep(1)
 
-    s.cmd.fromTuple(turnOnRed)
-    s.send_command()
-    time.sleep(1)
-
-    s.cmd.fromTuple(turnOffRed)
-    s.send_command()
-    s.cmd.fromTuple(turnOnBlue)
-    s.send_command()
-    time.sleep(1)
-
-    s.cmd.fromTuple(turnOffBlue)
-    s.send_command()
-    s.cmd.fromTuple(turnOnGreen)
-    s.send_command()
-    time.sleep(1)
-
-    s.cmd.fromTuple(turnOffGreen)
-    s.send_command()
-    time.sleep(1)
     '''
-
-    time.sleep(1)
     s.stopProcess()
 
 if __name__ == "__main__":
