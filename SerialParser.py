@@ -1,20 +1,48 @@
 
+import struct
+
 class Data(object):
     def __init__(self,msg,value):
         self.msg = msg
         self.value = value
 
-def serialParser(msg):
+def serialParser(msg,fmt):
 
-    auxSeparator = '&'
-    charParamsSeparator = '*'
-    charDataSeparator = '\t'
-    charMessageSeparator = ' '
-
-    msg = msg.rstrip()
     #print(msg)
-    pid = list()
+    rxCom = struct.unpack(fmt, msg)
+    #com = rxCom[1]
+    #msg1 = rxCom[2]
+    #msg2 = rxCom[3]
+    #msg3 = rxCom[4]
+    #print(com)
+    #msg = msg.rstrip()
+    #print(msg)
+    command = list()
 
+    for i in range(1,5):
+        command.append(rxCom[i])
+        #print(rxCom[i])
+
+    #print(command)
+    return(command)
+
+    '''
+    if com == 5: # pid data
+        command.append(com)
+        command.append(msg1)
+        command.append(msg2)
+        command.append(msg3)
+        #print(command)
+        return command
+
+    if com == 1:    # motor data
+        command.append(com)
+        command.append(msg1)
+        command.append(msg2)
+        command.append(msg3)
+        #print(command)
+        return command
+    '''
     if msg[0] == "&":
         return msg[1:]
 

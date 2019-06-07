@@ -17,7 +17,6 @@ from array import array
 from message import *
 
 from io import BytesIO
-import ctypes
 
 from struct import *
 

@@ -151,7 +151,7 @@ class App(QApplication):
         else:
             self.actionRefreshButton()
 
-        print('[INFO] Preparing Serial Handler')
+        print('[INFO] Connected to '+self.device+' at '+self.baudrate)
         self.serialHandler.setInterface(self.device, self.baudrate)
         self.isDeviceInit = True
         self.serialHandler.startThread.emit()
@@ -175,20 +175,16 @@ class App(QApplication):
 
         self.sendCMD(0,20,0,0,0,0) # stop data stream
 
-        #self.serialHandler.sendMsg.emit('b\n')
-        #self.serialHandler.sendMsg.emit('i\n')
         time.sleep(0.5)
 
     def actionResetButton(self):
         self.sendCMD(0,99,0,0,0,0) # psoc software reset
-        # self.serialHandler.sendMsg.emit('q\n')
         self.showData = False
         self.isMoving = False
         self.selectedController = None
 
-        self.main.buttonStart.setEnabled(False)
+        self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
-        # self.main.buttonBrake.setEnabled(False)
         self.main.buttonReset.setEnabled(False)
         self.main.buttonSend.setEnabled(False)
 
@@ -197,9 +193,9 @@ class App(QApplication):
         time.sleep(1)
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
-        # self.main.buttonBrake.setEnabled(False)
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
+        self.sendCMD(0,20,0,0,0,0) # stop data stream
         self.actionSelectController()
         time.sleep(0.1)
 
@@ -298,16 +294,16 @@ class App(QApplication):
             self.selectedController = self.main.comboBoxController.currentText()
             self.main.refSliderLabel.setText(self.selectedController)
             if self.selectedController == 'Position':
-                self.sendCMD(0,23,1,0,0,0,0) # set position control mode
-                self.sendCMD(0,22,1,0,0,0,0)  # request PID values
+                self.sendCMD(0,23,1,0,0,0) # set position control mode
+                self.sendCMD(0,22,1,0,0,0)  # request PID values
                 self.selectPositionController()
             elif self.selectedController == 'Speed':
-                controlSelectCMD = self.CMD(0,23,-1,0,0,0) # set velocity control mode
+                #print("speed")
                 self.sendCMD(0,23,0,0,0,0) # set speed control mode
                 self.sendCMD(0,22,0,0,0,0)  # request PID values
                 self.selectSpeedController()
             elif self.selectedController == 'Tension':
-                controlSelectCMD = self.CMD(0,23,0,-1,0,0,0) # set tension control mode
+                controlSelectCMD = self.CMD(0,23,0,-1,0,0) # set tension control mode
                 self.cmd.fromTuple(controlSelectCMD)
                 self.serialHandler.send_command(self.cmd)
 
@@ -353,15 +349,15 @@ class App(QApplication):
 
 
     def setPValue(self):
-        self.main.pValue.setText(str(self.main.pSlider.value()))
+        self.main.pValue.setText(str('%.4f'%(self.main.pSlider.value()/4096)))
         #self.serialHandler.sendCompoundMsg.emit('P',self.main.pSlider.value())
 
     def setIValue(self):
-        self.main.iValue.setText(str(self.main.iSlider.value()))
+        self.main.iValue.setText(str('%.4f'%(self.main.iSlider.value()/4096)))
         #self.serialHandler.sendCompoundMsg.emit('I',self.main.iSlider.value())
 
     def setDValue(self):
-        self.main.dValue.setText(str(self.main.dSlider.value()))
+        self.main.dValue.setText(str('%.4f'%(self.main.dSlider.value()/4096)))
         #self.serialHandler.sendCompoundMsg.emit('D',self.main.dSlider.value())
     def actionSendButton(self):
         P = self.main.pSlider.value()
@@ -387,40 +383,54 @@ class App(QApplication):
             self.serialHandler.sendCompoundMsg.emit('$',self.main.refSlider.value())
 
     # Methods to handle serial data
-    def updateData(self, msg):
-        sensorData = serialParser(msg)
-        if isinstance(sensorData,str):
-            print(sensorData)
-            #pass
-        elif isinstance(sensorData,list):
-            self.main.pSlider.setValue(sensorData[0])
-            self.main.iSlider.setValue(sensorData[1])
-            self.main.dSlider.setValue(sensorData[2])
-            self.main.pValue.setText(str(sensorData[0]))
-            self.main.iValue.setText(str(sensorData[1]))
-            self.main.dValue.setText(str(sensorData[2]))
-        elif isinstance(sensorData,dict):
+    def updateData(self, msg, fmt):
+        data = serialParser(msg,fmt)
+        #print(sensorData)
+        if(data[0] == 1):   # for graphics
             # update plot
             #"Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)
             #print(sensorData)
-            ref,actual,time,tens = self.main.mainPlot.update(sensorData)
+            ref,actual,time,tens = self.main.mainPlot.update(data)
             if self.isLogging:
                 txt = "%f;%d;%d;%d" % (time,ref,actual,tens)
                 row = []
                 row.append(txt)
                 self.logHandler.writerow(row)
 
-        elif isinstance(sensorData,int):
+        if(data[0] == 5):   # update pid parameters in main
+            self.main.pSlider.setValue(data[1])
+            self.main.pValue.setText(str('%.4f'%(data[1]/4096)))
+            self.main.iSlider.setValue(data[2])
+            self.main.iValue.setText(str('%.4f'%(data[2]/4096)))
+            self.main.dSlider.setValue(data[3])
+            self.main.dValue.setText(str('%.4f'%(data[3]/4096)))
+
+        if isinstance(data,str):
+            print(data)
+            #pass
+
+        elif isinstance(data,dict):
+            # update plot
+            #"Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)
             #print(sensorData)
-            if(sensorData == 1):
+            ref,actual,time,tens = self.main.mainPlot.update(data)
+            if self.isLogging:
+                txt = "%f;%d;%d;%d" % (time,ref,actual,tens)
+                row = []
+                row.append(txt)
+                self.logHandler.writerow(row)
+
+        elif isinstance(data,int):
+            #print(sensorData)
+            if(data == 1):
                 self.main.comboBoxController.setCurrentIndex(self.controllers.index('Position'))
                 self.selectedController = 'Position'
                 self.selectPositionController()
-            elif(sensorData == 2):
+            elif(data == 2):
                 self.main.comboBoxController.setCurrentIndex(self.controllers.index('Speed'))
                 self.selectedController = 'Speed'
                 self.selectSpeedController()
-            elif(sensorData == 3):
+            elif(data == 3):
                 self.main.comboBoxController.setCurrentIndex(self.controllers.index('Tension'))
                 self.selectedController = 'Tension'
                 self.selectTensionController()

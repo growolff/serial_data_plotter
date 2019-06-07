@@ -21,11 +21,11 @@ and keeps emiting messages using pyqt signals
 """
 
 class SerialHandler(QObject):
-    bufferUpdated = pyqtSignal(str)
 
-    sendMsg = pyqtSignal(str)
-    sendCompoundMsg = pyqtSignal(str,float)
-    setREF = pyqtSignal(str,int)
+    bufferUpdated = pyqtSignal(bytes,str)
+    #sendMsg = pyqtSignal(str)
+    #sendCompoundMsg = pyqtSignal(str,float)
+    #setREF = pyqtSignal(str,int)
     startThread = pyqtSignal()
     stopThread  = pyqtSignal()
     pauseThread = pyqtSignal()
@@ -47,8 +47,8 @@ class SerialHandler(QObject):
         self.pauseThread.connect(self.pauseProcess)
         self.resumeThread.connect(self.resumeProcess)
         self.flushSerial.connect(self.flush)
-        self.sendMsg.connect(self.emitAlone)
-        self.sendCompoundMsg.connect(self.emitCompound)
+        #self.sendMsg.connect(self.emitAlone)
+        #self.sendCompoundMsg.connect(self.emitCompound)
 
         self.alone = None
         self.compound = None
@@ -58,6 +58,9 @@ class SerialHandler(QObject):
         self.serial_mutex = threading.Lock()
 
         self.ser = serial.Serial(self.device, self.baudrate, timeout=0.1)
+
+        self.struct_fmt = '<BBhhh'
+        self.struct_len = struct.calcsize(self.struct_fmt)
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stopProcess()
@@ -141,7 +144,7 @@ class SerialHandler(QObject):
     def serialHandlerThread(self):
 
         while self.running is True:
-
+            '''
             if self.alone is not None:
                 print(self.alone)
                 self.ser.write(bytes(self.alone,'UTF-8'))
@@ -151,19 +154,19 @@ class SerialHandler(QObject):
                 print(self.compound)
                 self.ser.write(bytes(self.compound,'UTF-8'))
                 self.compound = None
-
+            '''
             # read messages
             try:
                 #print('Reading messages')
-                msg = self.ser.readline()
+                msg = self.ser.read(self.struct_len)
             except Exception as e:
                 print("reading error")
 
             if msg:
                 try:
-                    print("> %s"%(msg))
+                    #print("> %s"%(msg))
                     if not self.pause:
-                        self.bufferUpdated.emit(str(msg, 'utf-8'))
+                        self.bufferUpdated.emit(msg,self.struct_fmt)
                 except ValueError as e:
                     print('Wrong data')
                     print(e)
