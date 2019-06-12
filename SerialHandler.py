@@ -164,8 +164,9 @@ class SerialHandler(QObject):
 
             if msg:
                 try:
-                    #print("> %s"%(msg))
-                    if not self.pause:
+                    if msg[0] == 42:
+                        print("> %s"%(msg))
+                    elif not self.pause:
                         self.bufferUpdated.emit(msg,self.struct_fmt)
                 except ValueError as e:
                     print('Wrong data')

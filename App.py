@@ -165,11 +165,9 @@ class App(QApplication):
         self.main.buttonSelect.setEnabled(False)
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
-        # self.main.buttonBrake.setEnabled(False)
-        self.main.buttonReset.setEnabled(True)
+        #self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
 
-        #self.serialHandler.sendMsg.emit('n\n') # receive controller type
         self.main.comboBoxController.setCurrentIndex(self.controllers.index('Speed'))
         self.actionSelectController()
 
@@ -178,6 +176,7 @@ class App(QApplication):
         time.sleep(0.5)
 
     def actionResetButton(self):
+        self.sendCMD(0,20,0,0,0,0) # stop data stream
         self.sendCMD(0,99,0,0,0,0) # psoc software reset
         self.showData = False
         self.isMoving = False
@@ -188,14 +187,12 @@ class App(QApplication):
         self.main.buttonReset.setEnabled(False)
         self.main.buttonSend.setEnabled(False)
 
-        # self.serialHandler.sendMsg.emit('b\n')
-        # self.serialHandler.sendMsg.emit('i\n')
         time.sleep(1)
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
-        self.sendCMD(0,20,0,0,0,0) # stop data stream
+
         self.actionSelectController()
         time.sleep(0.1)
 
@@ -298,7 +295,6 @@ class App(QApplication):
                 self.sendCMD(0,22,1,0,0,0)  # request PID values
                 self.selectPositionController()
             elif self.selectedController == 'Speed':
-                #print("speed")
                 self.sendCMD(0,23,0,0,0,0) # set speed control mode
                 self.sendCMD(0,22,0,0,0,0)  # request PID values
                 self.selectSpeedController()
@@ -384,6 +380,7 @@ class App(QApplication):
 
     # Methods to handle serial data
     def updateData(self, msg, fmt):
+
         data = serialParser(msg,fmt)
         #print(sensorData)
         if(data[0] == 1):   # for graphics

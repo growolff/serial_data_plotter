@@ -90,8 +90,8 @@ class SensorPlot:
         #self.currentX = measurement.xData - self.initialX
         # self.currentY = measurement["Actual:"]
         # self.refY = measurement["Ref:"]
-        self.currentY = measurement[1]
-        self.refY = measurement[2]
+        self.refY = measurement[1]
+        self.currentY = measurement[2]
         self.val = measurement[3]
         self.currentTime = currentTime - self.initialTime
 

@@ -68,7 +68,6 @@ class MainWindow(QMainWindow):
         self.buttonReset = QPushButton("Reset")
         self.buttonsUI.addWidget(self.buttonReset, row=3, col=1)
         self.buttonStart.setShortcut('q')
-
         # Start visualization plots button
         self.buttonStop = QPushButton("Stop")
         self.buttonsUI.addWidget(self.buttonStop, row=4, col=0)
