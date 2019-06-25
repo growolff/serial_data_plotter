@@ -156,13 +156,13 @@ def test(HandSerial):
     time.sleep(1)
 
     s.sendCMD(0,0,4000,0,0,0) # set speed ref
-    time.sleep(2)
+    time.sleep(1)
 
     s.sendCMD(0,0,8000,0,0,0) # set speed ref
-    time.sleep(2)
+    time.sleep(1)
 
     s.sendCMD(0,0,4000,0,0,0) # set speed ref
-    time.sleep(2)
+    time.sleep(1)
 
     s.sendCMD(0,0,0,0,0,0) # set speed ref
     time.sleep(1)

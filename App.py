@@ -165,22 +165,26 @@ class App(QApplication):
         self.main.buttonSelect.setEnabled(False)
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
-        #self.main.buttonReset.setEnabled(True)
+        self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
 
         self.main.comboBoxController.setCurrentIndex(self.controllers.index('Speed'))
         self.actionSelectController()
 
         self.sendCMD(0,20,0,0,0,0) # stop data stream
+        self.sendCMD(0,40,0,0,0,0) # stop motor
 
         time.sleep(0.5)
 
     def actionResetButton(self):
         self.sendCMD(0,20,0,0,0,0) # stop data stream
+        self.sendCMD(0,40,0,0,0,0) # stop motor
         self.sendCMD(0,99,0,0,0,0) # psoc software reset
+        
         self.showData = False
         self.isMoving = False
         self.selectedController = None
+        self.showData = False
 
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
@@ -204,6 +208,9 @@ class App(QApplication):
         self.main.buttonSend.setEnabled(True)
 
         self.showData = True
+
+        self.sendCMD(0,40,0,0,0,0) # start data stream
+        self.sendCMD(0,44,0,0,0,0) # enable
 
         if self.isMoving == False:
             self.move()
