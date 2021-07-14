@@ -68,20 +68,16 @@ class MainWindow(QMainWindow):
         self.buttonReset = QPushButton("Reset")
         self.buttonsUI.addWidget(self.buttonReset, row=3, col=1)
         self.buttonStart.setShortcut('q')
-        # Start visualization plots button
+        # stop button
         self.buttonStop = QPushButton("Stop")
         self.buttonsUI.addWidget(self.buttonStop, row=4, col=0)
         self.buttonStop.setShortcut('s')
+        # Motor select
+        self.comboBoxMotors = QComboBox(self)
+        self.buttonsUI.addWidget(self.comboBoxMotors, row=4, col=1)
+        self.buttonStop.setShortcut('m')
 
-        # Motor HandBrake button
-        '''
-        self.buttonBrake = QPushButton("BRAKEn")
-        self.buttonsUI.addWidget(self.buttonBrake, row=4, col=1)
-        self.buttonBrake.setShortcut('b')
-        self.buttonBrake.setStyleSheet('QPushButton {color: red;}')
-        '''
-
-        #
+        # Controller select
         self.labelControl = QLabel("Controlador", self)
         self.buttonsUI.addWidget(self.labelControl, row=5, col=0)
         self.comboBoxController = QComboBox(self)
@@ -94,12 +90,12 @@ class MainWindow(QMainWindow):
         self.refSliderLabel = QLabel("Controller Ref",self)
         self.refSliderValue = QLabel("0",self)
         self.refSlider = QSlider(Qt.Horizontal)
-        self.refSlider.setMinimum(-50)
-        self.refSlider.setMaximum(50)
+        self.refSlider.setMinimum(-100)
+        self.refSlider.setMaximum(600)
         self.refSlider.setTickPosition(QSlider.TicksBelow)
-        self.refSlider.setTickInterval(1)
-        self.refSlider.setSingleStep(1) # arrow-key step-size
-        self.refSlider.setPageStep(1) # mouse-wheel/page-key step-size
+        self.refSlider.setTickInterval(0)
+        self.refSlider.setSingleStep(10) # arrow-key step-size
+        self.refSlider.setPageStep(10) # mouse-wheel/page-key step-size
         self.buttonsUI.addWidget(self.refSliderLabel, row=7,col=0)
         self.buttonsUI.addWidget(self.refSlider, row=7,col=1)
         self.buttonsUI.addWidget(self.refSliderValue, row=7,col=2)
@@ -109,36 +105,39 @@ class MainWindow(QMainWindow):
         self.pValue = QLabel("0",self)
         self.pSlider = QSlider(Qt.Horizontal)
         self.pSlider.setMinimum(0)
-        self.pSlider.setMaximum(2*self.factor)
+        self.pSlider.setMaximum(8*self.factor)
+        self.pSlider.setTickPosition(QSlider.TicksBelow)
+        self.pSlider.setTickInterval(0)
+        self.pSlider.setSingleStep(10) # arrow-key step-size
+        self.pSlider.setPageStep(10) # mouse-wheel/page-key step-size
         self.slidersUI.addWidget(self.pLabel, row=0,col=0)
         self.slidersUI.addWidget(self.pSlider, row=0,col=1)
         self.slidersUI.addWidget(self.pValue, row=0,col=2)
-        self.pSlider.setTickPosition(QSlider.TicksBelow)
-        self.pSlider.setTickInterval(10)
+
 
         # I slider
         self.iLabel = QLabel("kI",self)
         self.iValue = QLabel("0",self)
         self.iSlider = QSlider(Qt.Horizontal)
         self.iSlider.setMinimum(0)
-        self.iSlider.setMaximum(0.1*self.factor)
+        self.iSlider.setMaximum(5*self.factor)
         self.slidersUI.addWidget(self.iLabel, row=1,col=0)
         self.slidersUI.addWidget(self.iSlider, row=1,col=1)
         self.slidersUI.addWidget(self.iValue, row=1,col=2)
         self.iSlider.setTickPosition(QSlider.TicksBelow)
-        self.iSlider.setTickInterval(1)
+        self.iSlider.setTickInterval(128)
 
         # D slider
         self.dLabel = QLabel("kD",self)
         self.dValue = QLabel("0",self)
         self.dSlider = QSlider(Qt.Horizontal)
         self.dSlider.setMinimum(0)
-        self.dSlider.setMaximum(1*self.factor)
+        self.dSlider.setMaximum(5*self.factor)
         self.slidersUI.addWidget(self.dLabel, row=2,col=0)
         self.slidersUI.addWidget(self.dSlider, row=2,col=1)
         self.slidersUI.addWidget(self.dValue, row=2,col=2)
         self.dSlider.setTickPosition(QSlider.TicksBelow)
-        self.dSlider.setTickInterval(10)
+        self.dSlider.setTickInterval(128)
 
         # Send button
         self.buttonSend = QPushButton("Send")

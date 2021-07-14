@@ -23,24 +23,27 @@ class SensorPlot:
         self.name = str(self.id)
         self.maxDataSize = 500
         self.yData = np.zeros(self.maxDataSize)
-        self.xData = np.zeros(self.maxDataSize)
+        self.yyData = np.zeros(self.maxDataSize)
+        self.yyyData = np.zeros(self.maxDataSize)
         self.time = np.zeros(self.maxDataSize)
 
-        self.xIdx = 0
         self.yIdx = 0
+        self.yyIdx = 0
+        self.yyyIdx = 0
         self.timeIdx = 0
 
         self.isFirst = True
         self.initialTime = 0
         self.initialX = 0
 
-        self.currentX = 0
         self.currentY = 0
+        self.currentYY = 0
+        self.currentYYY = 0
         self.currentTime = 0
-        self.xLabel = None
         self.yLabel = None
-        self.xUnits = None
+        self.yyLabel = None
         self.yUnits = None
+        self.yyUnits = None
 
         # prepare dock widget
         self.dockWindow = Dock(self.name, size=(1, 1))
@@ -57,14 +60,16 @@ class SensorPlot:
         self.layout.addWidget(self.layoutHeader, row=0, col=0)
 
         # prepare plot
-        self.widgetPlot = pg.PlotWidget(enableMenu=self.enableMenu, title="Gonza3")
+        self.widgetPlot = pg.PlotWidget(enableMenu=self.enableMenu, title="")
         self.widgetPlot.showGrid(x=True, y=True, alpha=0.5)
         self.layout.addWidget(self.widgetPlot, row=1, col=0)
 
         self.penPlot = pg.mkPen(color=self.color, width=1)
         self.penPlot2 = pg.mkPen(color=(0,100,200), width=1)
+        self.penPlot3 = pg.mkPen(color=(100,100,200), width=1)
         self.plot = self.widgetPlot.plot(pen=self.penPlot)
         self.plot2 = self.widgetPlot.plot(pen=self.penPlot2)
+        self.plot3 = self.widgetPlot.plot(pen=self.penPlot3)
 
         # add everything to dock
         self.dockWindow.addWidget(self.layout)
@@ -83,13 +88,11 @@ class SensorPlot:
             self.initialTime = currentTime
 
             # configure labels
-            self.widgetPlot.setLabel('bottom', text=self.xLabel, units=self.xUnits)
-            self.widgetPlot.setLabel('left',   text=self.yLabel, units=self.yUnits)
-            self.widgetPlot.setTitle(self.name)
+            # self.widgetPlot.setLabel('bottom', text=self.xLabel, units=self.xUnits)
+            # self.widgetPlot.setLabel('left',   text=self.yLabel, units=self.yUnits)
+            # self.widgetPlot.setTitle(self.name)
 
         #self.currentX = measurement.xData - self.initialX
-        # self.currentY = measurement["Actual:"]
-        # self.refY = measurement["Ref:"]
         self.refY = measurement[1]
         self.currentY = measurement[2]
         self.val = measurement[3]
@@ -99,25 +102,28 @@ class SensorPlot:
         #print(self.yIdx, self.currentY)
 
         self.yData[self.yIdx] = self.currentY # y current
-        self.xData[self.xIdx] = self.refY # x ref
+        self.yyData[self.yyIdx] = self.refY # x ref
+        self.yyyData[self.yyyIdx] = self.val # another val
         self.time[self.timeIdx] = self.currentTime
 
         # Update current value label
-        self.label.setText(self.name + " Actual: " + str(self.currentY))
+        self.label.setText("valor actual: " + str(self.currentY))
 
         # increase counters
         self.yIdx = (self.yIdx + 1) % self.maxDataSize
-        self.xIdx = (self.xIdx +1) % self.maxDataSize
+        self.yyIdx = (self.yyIdx + 1) % self.maxDataSize
+        self.yyyIdx = (self.yyyIdx + 1) % self.maxDataSize
         self.timeIdx = (self.timeIdx + 1) % self.maxDataSize
 
         # update plots
-        xDataTmp = np.concatenate( (self.xData[self.xIdx:], self.xData[0:self.xIdx]), axis=0)
         yDataTmp = np.concatenate( (self.yData[self.yIdx:], self.yData[0:self.yIdx]), axis=0)
+        yyDataTmp = np.concatenate( (self.yyData[self.yyIdx:], self.yyData[0:self.yyIdx]), axis=0)
+        yyyDataTmp = np.concatenate( (self.yyyData[self.yyyIdx:], self.yyyData[0:self.yyyIdx]), axis=0)
         timeDataTmp = np.concatenate( (self.time[self.timeIdx:], self.time[0:self.timeIdx]), axis=0)
-        #print(xDataTmp)
 
         self.plot.setData(x=timeDataTmp, y=yDataTmp)
-        self.plot2.setData(x=timeDataTmp, y=xDataTmp)
+        self.plot2.setData(x=timeDataTmp, y=yyDataTmp)
+        self.plot3.setData(x=timeDataTmp, y=yyyDataTmp)
 
         return int(self.refY),int(self.currentY),float(self.currentTime),int(self.val)
 
@@ -129,7 +135,8 @@ class SensorPlot:
         #lastTime = self.time[self.timeIdx-1]
 
         self.yData = np.zeros(self.maxDataSize)
-        self.xData = np.zeros(self.maxDataSize)
+        self.yyData = np.zeros(self.maxDataSize)
+        self.yyyData = np.zeros(self.maxDataSize)
         self.time = np.zeros(self.maxDataSize)
 
         self.yIdx = 0

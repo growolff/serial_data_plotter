@@ -4,13 +4,13 @@ import serial
 import time
 
 from collections import namedtuple
-from message import MotorCommand
+from MotorCommand import MotorCommand
 
 from array import array
 
 from io import BytesIO
 
-import struct
+from struct import *
 
 """
 Class Serial handler
@@ -19,13 +19,9 @@ This class opens a serial device with the defined port and baudrate
 and keeps emiting messages using pyqt signals
 
 """
-
 class SerialHandler(QObject):
 
-    bufferUpdated = pyqtSignal(bytes,str)
-    #sendMsg = pyqtSignal(str)
-    #sendCompoundMsg = pyqtSignal(str,float)
-    #setREF = pyqtSignal(str,int)
+    bufferUpdated = pyqtSignal(tuple)
     startThread = pyqtSignal()
     stopThread  = pyqtSignal()
     pauseThread = pyqtSignal()
@@ -39,7 +35,7 @@ class SerialHandler(QObject):
         self.thread = threading.Thread(target=self.serialHandlerThread)
         self.device = 'COM4'
         self.baudrate = 115200
-        self.rate = 1000000000000000000000
+        self.rate = 1000000
 
         # prepare connections with parent window
         self.startThread.connect(self.startProcess)
@@ -47,8 +43,6 @@ class SerialHandler(QObject):
         self.pauseThread.connect(self.pauseProcess)
         self.resumeThread.connect(self.resumeProcess)
         self.flushSerial.connect(self.flush)
-        #self.sendMsg.connect(self.emitAlone)
-        #self.sendCompoundMsg.connect(self.emitCompound)
 
         self.alone = None
         self.compound = None
@@ -57,17 +51,36 @@ class SerialHandler(QObject):
         self.cmd = MotorCommand()
         self.serial_mutex = threading.Lock()
 
-        self.ser = serial.Serial(self.device, self.baudrate, timeout=0.1)
+        self.ser = serial.Serial()
 
+        # with serial.Serial(self.device, self.baudrate, timeout=0.1) as ser:
+        #     self.ser = ser
+
+        # estructura del mensaje
         self.struct_fmt = '<BBhhh'
-        self.struct_len = struct.calcsize(self.struct_fmt)
+        self.struct_len = calcsize(self.struct_fmt)
+
+    def set_COM_port_settings(self, com_port):
+    	self.ser.port = self.device
+    	self.ser.baudrate = self.baudrate
+    	self.ser.bytesize = serial.EIGHTBITS 	#number of bits per bytes
+    	self.ser.parity = serial.PARITY_NONE 	#set parity check: no parity
+    	self.ser.stopbits = serial.STOPBITS_ONE #number of stop bits
+    	self.ser.timeout = 3            		#non-block read
+    	self.ser.xonxoff = False     			#disable software flow control
+    	self.ser.rtscts = False     			#disable hardware (RTS/CTS) flow control
+    	self.ser.dsrdtr = False      			#disable hardware (DSR/DTR) flow control
+    	self.ser.writeTimeout = 3     			#timeout for write
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stopProcess()
 
     def setInterface(self, device, baudrate):
+        self.ser.port = device
+        self.ser.baudrate = baudrate
         self.device = device
         self.baudrate = baudrate
+
 
     def isRunning(self):
         return (self.running or not self.pause)
@@ -82,7 +95,7 @@ class SerialHandler(QObject):
         buff = BytesIO()
         self.cmd.serialize(buff)
 
-        print(self.to_hex(buff.getvalue()))
+        #print(self.to_hex(buff.getvalue()))
         #print(buff.getvalue())
 
         base_cmd_int = bytearray(buff.getvalue())
@@ -114,10 +127,7 @@ class SerialHandler(QObject):
         self.cmd.I = command.I
         self.cmd.D = command.D
 
-    @pyqtSlot()
-    def flush(self):
-        #self.ser.reset_input_buffer()
-        print(self.ser.readline())
+    # pyqt signals definition
 
     @pyqtSlot()
     def startProcess(self):
@@ -136,6 +146,11 @@ class SerialHandler(QObject):
     def resumeProcess(self):
         self.pause = False
 
+    @pyqtSlot()
+    def flush(self):
+        #self.ser.reset_input_buffer()
+        print(self.ser.readline())
+
     @pyqtSlot(int)
     def setRate(self, rate):
         self.rate = rate
@@ -144,33 +159,17 @@ class SerialHandler(QObject):
     def serialHandlerThread(self):
 
         while self.running is True:
-            '''
-            if self.alone is not None:
-                print(self.alone)
-                self.ser.write(bytes(self.alone,'UTF-8'))
-                self.alone = None
-
-            if self.compound is not None:
-                print(self.compound)
-                self.ser.write(bytes(self.compound,'UTF-8'))
-                self.compound = None
-            '''
             # read messages
             try:
-                #print('Reading messages')
-                msg = self.ser.read(self.struct_len)
+                if self.ser.inWaiting():
+                    msg = self.ser.read(self.struct_len)
+                    rxCom = unpack(self.struct_fmt, msg)
+                    #print(type(rxCom))
+                    self.bufferUpdated.emit(rxCom)
+                    #print(msg)
             except Exception as e:
-                print("reading error")
+                print(e)
 
-            if msg:
-                try:
-                    if msg[0] == 42:
-                        print("> %s"%(msg))
-                    elif not self.pause:
-                        self.bufferUpdated.emit(msg,self.struct_fmt)
-                except ValueError as e:
-                    print('Wrong data')
-                    print(e)
             #else:
             #    pass
 
