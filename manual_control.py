@@ -14,128 +14,88 @@ from collections import namedtuple
 #from pyqtgraph.Qt import QtCore, QtGui
 from array import array
 
-from message import *
-
-from io import BytesIO
+from HandSerial import HandSerial
 
 from struct import *
 
-class HandSerial(object):
-    def __init__(self):
+SEND_DATA_TRUE = 40
+SEND_DATA_FALSE = 20
+SET_POS_REF = 1
+SET_FORCE_REF = 2
+REQ_PID_VALUES = 22
+SET_PID_VALUES = 23
+SET_CONTROL_MODE = 24
+DISABLE_MOTOR = 25
+ENABLE_MOTOR = 26
+DEBUG_VAR = 55
+SOFTWARE_RESET = 99
 
-        self.device = 'COM4'
-        self.baudrate = 115200
-        self.running = False
+POSITION_CONTROL = 1
 
-        self.cmd = MotorCommand()
-        self.CMD = namedtuple('CMD', 'id cmd pref P I D')
+def receiveData(motor):
+    print("Enable data stream")
+    s.sendCMD(motor,SEND_DATA_TRUE,0,0,0,0) # send data
 
-        self.serial_mutex = Lock()
+def moveMotor(motor):
+    origen = 0
+    goal = 300
 
-        self.ser = serial.Serial(self.device, self.baudrate, timeout=0.1)
+    print("Enable data stream")
+    s.sendCMD(motor,SEND_DATA_TRUE,0,0,0,0) # send data
 
-        self.thread = Thread(target=self.serialHandlerThread)
-        #self.startProcess()
+    print("Set control mode")
+    s.sendCMD(motor,SET_CONTROL_MODE,POSITION_CONTROL,0,0,0) # set control mode position
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.stopProcess()
+    print("Enable motor")
+    s.sendCMD(motor,ENABLE_MOTOR,0,0,0,0) # enable motor
 
-    def close(self):
-        """
-        Close the serial port.
-        """
-        if self.ser:
-            self.ser.flushInput()
-            self.ser.flushOutput()
-            self.ser.close()
+    print("Set position reference")
+    s.sendCMD(motor,SET_POS_REF,goal,0,0,0)
+    time.sleep(2)
 
-    def stopProcess(self):
-        self.running = False
+    print("Set position reference")
+    s.sendCMD(motor,SET_POS_REF,origen,0,0,0)
+    time.sleep(2)
 
-    def startProcess(self):
-        self.running = True
-        self.thread.start()
+    print("Disable motor")
+    s.sendCMD(motor,DISABLE_MOTOR,0,0,0,0) # disable motor
 
-    def send_command_old(self,command):
-        #msg = "Send command: %s"%(command)
-        #print(msg)
-        self.ser.write(bytes(command+'\n','UTF-8'))
-        #self.ser.write(command)
+def moveTwoMotors():
+    origen = 0
+    goal = 500
 
-    def send_command(self):
+    s.sendCMD(1,SEND_DATA_TRUE,0,0,0,0) # send data
+    s.sendCMD(1,SET_CONTROL_MODE,POSITION_CONTROL,0,0,0) # set control mode position
+    s.sendCMD(0,SET_CONTROL_MODE,POSITION_CONTROL,0,0,0) # set control mode position
 
-        buff = BytesIO()
-        self.cmd.serialize(buff)
+    s.sendCMD(0,ENABLE_MOTOR,0,0,0,0) # enable motor
+    s.sendCMD(1,ENABLE_MOTOR,0,0,0,0) # enable motor
 
-        #print(to_hex(buff.getvalue()))
-        #print(buff.getvalue())
+    s.sendCMD(0,SET_POS_REF,goal,0,0,0)
+    time.sleep(0.1)
+    s.sendCMD(1,SET_POS_REF,origen,0,0,0)
 
-        base_cmd_int = bytearray(buff.getvalue())
-        #checksum = 255 - ( sum(base_cmd_int) % 256 )
-        # Packet: FF  FF  BASE_CMD  CHECKSUM
-        #packet = bytearray([0xFF, 0xFF]) + base_cmd_int + bytearray([checksum]) + bytearray([0x0D])
+    time.sleep(2)
+    s.sendCMD(0,SET_POS_REF,origen,0,0,0)
+    time.sleep(0.1)
+    s.sendCMD(1,SET_POS_REF,goal,0,0,0)
+    time.sleep(2)
+    #s.sendCMD(0,DISABLE_MOTOR,0,0,0,0) # disable motor
+    #s.sendCMD(1,DISABLE_MOTOR,0,0,0,0) # disable motor
 
-        packet = bytearray([0xFF,0xFF]) + base_cmd_int + bytearray([0x0D])
-        packet_str = array('B', packet).tostring()
-        with self.serial_mutex:
-            self.write_serial(packet_str)
+def pote_test(motor):
+    print("Enable data stream")
+    s.sendCMD(motor,40,0,0,0,0) # send data
+    time.sleep(1)
 
-    def write_serial(self, data):
-        """
-        Write in the serial port.
-        """
-        #print(self.cmd)
-        print("Hex: {}".format(to_hex(data)))
-        #print("BIN: {}".format(to_byte(data)))
-        self.ser.flushInput()
-        self.ser.flushOutput()
-        self.ser.write(data)
+    print("Set control mode")
+    s.sendCMD(motor,SET_CONTROL_MODE,0,0,0,0) # set control mode speed
+    time.sleep(1)
 
-    def handle_data(self,data):
-        print(data)
+    print("Enable motor")
+    s.sendCMD(motor,44,0,0,0,0) # enable motor
+    time.sleep(1)
 
-    def serialHandlerThread(self):
-
-        #RxBuff = struct.Struct('<BhhB')
-        struct_fmt = '<BBhhh'
-        struct_len = calcsize(struct_fmt)
-        #rxCom = namedtuple('rxCom','xff com ref cur val')
-        while self.running is True:
-            #if self.ser.in_waiting > 0 :
-            try:
-                msg = self.ser.read(struct_len)  # show the message as it is
-                #print(msg) # b'a100000000'
-                ##MSG._make(unpack_from('<BBii', msg))
-                rxCom = unpack(struct_fmt, msg)
-                cur = rxCom[3]
-                print(cur)
-                #print(MSG.meas)
-
-                #self.handle_data(MSG.reference)
-
-            except Exception as e:
-                print("reading error: ",e)
-
-            '''
-            try:
-                #print('Reading messages')
-                #msg = self.ser.readline().decode()  # decode special characters from the message
-                msg = self.ser.readline()          # show the message as it is
-                #com,ref,cur = unpack('=Bhh',self.ser.readline())
-
-            except Exception as e:
-                print("reading error: %s",e)
-
-            if msg:
-
-                #print(calcsize('=Bhh'))
-            '''
-        self.ser.close()
-
-    def sendCMD(self,id,cm,pref,p,i,d):
-        asd = self.CMD(id,cm,pref,p,i,d)
-        self.cmd.fromTuple(asd)
-        self.send_command()
 
 def test(HandSerial):
 
@@ -147,64 +107,16 @@ def test(HandSerial):
     s.cmd.D = 0
     #s.send_command()
 
-    s.sendCMD(0,40,0,0,0,0) # send data
-    time.sleep(1)
-
-    s.sendCMD(0,23,0,0,0,0) # set control mode speed
-    time.sleep(1)
-    s.sendCMD(0,44,0,0,0,0) # enable motor
-    time.sleep(1)
-
-    s.sendCMD(0,0,4000,0,0,0) # set speed ref
-    time.sleep(1)
-
-    s.sendCMD(0,0,8000,0,0,0) # set speed ref
-    time.sleep(1)
-
-    s.sendCMD(0,0,4000,0,0,0) # set speed ref
-    time.sleep(1)
-
-    s.sendCMD(0,0,0,0,0,0) # set speed ref
-    time.sleep(1)
-
-    #s.sendCMD(0,1,100,0,0,0) # set reference
-    #time.sleep(1)
-
-    #s.sendCMD(0,25,0,200,0,0) # change pid
-    #time.sleep(1)
-
-    #s.sendCMD(0,1,-100,0,0,0) # set reference
-    #time.sleep(1)
-
-    #s.sendCMD(0,55,0,0,0,0)
-    #time.sleep(1)
-    '''
-    s.sendCMD(0,25,0,200,10,0) # change pid
-    time.sleep(1)
-
-
-    #s.send_command
-    time.sleep(5)
-
-    setpid = comm(0,25,0,150,0,0) # change pid
-    s.cmd.fromTuple(setpid)
-    #s.send_command()
-    time.sleep(1)
-
-    moverRight = comm(0,1,100,0,0,0)
-    s.cmd.fromTuple(moverRight)
-    #s.send_command()
-    time.sleep(5)
-
-    iniciar = comm(0,24,0,0,0,0) # disable motor
-    s.cmd.fromTuple(iniciar)
-    s.send_command()
-
-
-    time.sleep(1)
-
-    '''
-    s.stopProcess()
+    try:
+        #receiveData(1)
+        #moveTwoMotors()
+        moveMotor(0)
+        #pote_test(0)
+        #time.sleep(20)
+        s.stopProcess()
+    except Exception as e:
+        print(e)
+        s.stopProcess()
 
 if __name__ == "__main__":
 
@@ -212,6 +124,6 @@ if __name__ == "__main__":
     s.startProcess()
     try:
         test(s)
-    except Exception:
-        print('Chaito')
+    except Exception as e:
+        print(e)
         s.stopProcess()
