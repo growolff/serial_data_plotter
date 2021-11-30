@@ -33,6 +33,7 @@ import seaborn as sns
 
 CMD_SEND_DATA_TRUE = 40
 CMD_SEND_DATA_FALSE = 20
+CMD_SET_SPEED_REF = 0
 CMD_SET_POS_REF = 1
 CMD_SET_FORCE_REF = 2
 CMD_GET_PID_VALUES = 21
@@ -43,8 +44,23 @@ CMD_DISABLE_MOTOR = 25
 CMD_ENABLE_MOTOR = 26
 CMD_DEBUG_VAR = 55
 CMD_SOFTWARE_RESET = 99
+CMD_UPDATE_PLOT = 100
 
 FLOAT_TO_INT_SCALE = 4096
+
+SPD_CTRL = 0
+REV_CTRL = 1
+TEN_CTRL = 2
+
+F1_MF = 0
+F1_ME = 1
+F2_MF = 2
+F2_ME = 3
+F3_MF = 4
+F3_ME = 5
+F1 = 6
+F2 = 7
+F3 = 8
 
 class App(QApplication):
     def __init__(self, *args):
@@ -82,9 +98,14 @@ class App(QApplication):
         self.showData = False
         self.isMoving = False
 
+        self.controllers = ['Position','Speed','Tension']
         self.selectedController = 'Position'
 
-        self.selectedMotor = 0 #'M1'
+        self.motors = ['F1_MF','F1_ME']
+        self.motors_idx = [F1_MF,F1_ME]
+
+        self.selectedMotor = F1_ME #'M1'
+        self.selectedFinger = F1 #indice
 
         # data logging
         self.isLogging = False
@@ -94,7 +115,6 @@ class App(QApplication):
         self.logFilename = None
 
         # set initial buttons states
-        # # self.main.buttonBrake.setEnabled(False)
         self.main.buttonStart.setEnabled(False)
         self.main.buttonStop.setEnabled(False)
         self.main.buttonReset.setEnabled(False)
@@ -174,13 +194,16 @@ class App(QApplication):
         self.serialHandler.startThread.emit()
         print('[INFO] Connected to '+self.device+' at '+self.baudrate)
 
-        self.controllers = ['Position','Speed','Tension']
-        for cont in self.controllers:
-            self.main.comboBoxController.addItem(cont)
-
-        self.motors = ['M1','M2']
         for cont in self.motors:
             self.main.comboBoxMotors.addItem(cont)
+        self.main.comboBoxMotors.setCurrentIndex(self.motors.index('F1_ME'))
+
+        for cont in self.controllers:
+            self.main.comboBoxController.addItem(cont)
+        self.main.refSliderLabel.setText(self.selectedController)
+        self.main.comboBoxController.setCurrentIndex(self.controllers.index(self.selectedController))
+        self.actionSelectController()
+        self.disableMotors()
 
         # update buttons availability
         self.main.buttonRefresh.setEnabled(False)
@@ -191,18 +214,10 @@ class App(QApplication):
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
 
-        self.main.comboBoxController.setCurrentIndex(self.controllers.index('Position'))
-        #self.actionSelectController()
 
-        self.sendCMD(self.selectedMotor,CMD_SEND_DATA_FALSE,0,0,0,0) # stop data stream
-        self.sendCMD(self.selectedMotor,CMD_DISABLE_MOTOR,0,0,0,0) # stop motor
-        #self.sendCMD(1,CMD_SOFTWARE_RESET,0,0,0,0) # psoc software reset
-        self.sendCMD(self.selectedMotor,CMD_REQ_PID_VALUES,0,0,0,0) # request pid values
-
-        self.actionSelectController()
-        time.sleep(0.1)
-        self.sendCMD(self.selectedMotor,CMD_SOFTWARE_RESET,0,0,0,0) # psoc software reset
-        time.sleep(0.1)
+    def disableMotors(self):
+        for i in self.motors_idx:
+            self.sendCMD(i,CMD_DISABLE_MOTOR,0,0,0,0) # stop motor
 
     def actionStartButton(self):
         print("[action] START")
@@ -211,8 +226,8 @@ class App(QApplication):
         self.main.buttonStart.setEnabled(False)
         self.main.buttonSend.setEnabled(True)
 
-        self.sendCMD(1,CMD_SEND_DATA_TRUE,0,0,0,0) # start data stream
-        self.sendCMD(1,CMD_ENABLE_MOTOR,0,0,0,0) # enable motor
+        self.sendCMD(self.selectedMotor,CMD_SEND_DATA_TRUE,0,0,0,0) # start data stream
+        self.sendCMD(self.selectedMotor,CMD_ENABLE_MOTOR,0,0,0,0) # enable motor
 
         self.showData = True
 
@@ -248,36 +263,39 @@ class App(QApplication):
 
     def actionResetButton(self):
         print("[action] RESET")
-        self.sendCMD(1,CMD_SEND_DATA_FALSE,0,0,0,0) # stop data stream
-        self.sendCMD(1,CMD_DISABLE_MOTOR,0,0,0,0) # stop motor
-        self.sendCMD(1,CMD_SOFTWARE_RESET,0,0,0,0) # psoc software reset
+        self.sendCMD(self.selectedMotor,CMD_SEND_DATA_FALSE,0,0,0,0) # stop data stream
+
+        self.sendCMD(self.selectedMotor,CMD_SOFTWARE_RESET,0,0,0,0) # psoc software reset
         self.main.mainPlot.clearData()
 
         self.actionSelectController()
 
         self.showData = False
         self.isMoving = False
-        self.selectedController = None
+        self.selectedController = 'Position'
         self.showData = False
 
-        self.main.buttonStart.setEnabled(True)
-        self.main.buttonStop.setEnabled(False)
-        self.main.buttonReset.setEnabled(False)
-        self.main.buttonSend.setEnabled(False)
-
-        time.sleep(1)
+        # update buttons availability
+        self.main.buttonRefresh.setEnabled(False)
+        self.main.buttonSelectController.setEnabled(True)
+        self.main.buttonSelect.setEnabled(False)
         self.main.buttonStart.setEnabled(True)
         self.main.buttonStop.setEnabled(False)
         self.main.buttonReset.setEnabled(True)
         self.main.buttonSend.setEnabled(True)
 
+        self.main.comboBoxController.setCurrentIndex(self.controllers.index('Position'))
+
+
     def changeMotor(self):
+        print('Selected motor M%s'%(self.motors[self.selectedMotor]))
         self.selectedMotor = self.main.comboBoxMotors.currentIndex()
-        print(self.selectedMotor)
+        self.main.mainPlot.clearData()
+        self.sendCMD(self.selectedMotor,CMD_REQ_PID_VALUES,1,0,0,0)  # request PID values
 
     def brake(self):
         self.sendCMD(self.selectedMotor,CMD_SEND_DATA_FALSE,0,0,0,0) # stop sending data
-        self.sendCMD(self.selectedMotor,CMD_DISABLE_MOTOR,0,0,0,0) # toggle enable 0
+        #self.sendCMD(self.selectedMotor,CMD_DISABLE_MOTOR,0,0,0,0) # toggle enable 0
         self.isMoving = False
 
     def move(self):
@@ -308,41 +326,31 @@ class App(QApplication):
     def actionSelectController(self):
         print("[action] CONTROL SELECTION")
 
-        if self.main.comboBoxController.currentText() != self.selectedController:
-            self.selectedController = self.main.comboBoxController.currentText()
-            self.main.refSliderLabel.setText(self.selectedController)
-            if self.selectedController == 'Position':
-                self.sendCMD(self.selectedMotor,CMD_SET_CONTROL_MODE,1,0,0,0) # set position control mode
-                self.sendCMD(self.selectedMotor,CMD_REQ_PID_VALUES,0,0,0,0)  # request PID values
-                self.selectPositionController()
-            elif self.selectedController == 'Speed':
-                self.sendCMD(self.selectedMotor,23,0,0,0,0) # set speed control mode
-                self.sendCMD(self.selectedMotor,22,0,0,0,0)  # request PID values
-                self.selectSpeedController()
-            elif self.selectedController == 'Tension':
-                controlSelectCMD = self.CMD(self.selectedMotor,23,0,-1,0,0) # set tension control mode
-                self.cmd.fromTuple(controlSelectCMD)
-                self.serialHandler.send_command(self.cmd)
-
-                askparams = self.CMD(self.selectedMotor,22,0,-1,0,0,0) # request PID values
-                self.cmd.fromTuple(askparams)
-                self.serialHandler.send_command(self.cmd)
-                #self.serialHandler.sendCompoundMsg.emit('?',3)
-                self.selectTensionController()
-
-            self.main.mainPlot.clearData()
-
-            # self.main.buttonBrake.setEnabled(False)
-            #self.main.buttonStart.setEnabled(True)
-        elif self.selectedController == 'Position':
+        self.selectedController = self.main.comboBoxController.currentText()
+        if self.selectedController == 'Position':
+            print("[action] SELECT POSITION")
+            self.sendCMD(self.selectedMotor,CMD_SET_CONTROL_MODE,REV_CTRL,0,0,0) # set position control mode
+            time.sleep(0.1)
+            self.sendCMD(self.selectedMotor,CMD_REQ_PID_VALUES,0,0,0,0)  # request PID values
+            time.sleep(0.1)
             self.selectPositionController()
-            self.sendCMD(self.selectedMotor,CMD_SET_CONTROL_MODE,1,0,0,0) # set position control mode
-            self.sendCMD(self.selectedMotor,CMD_REQ_PID_VALUES,1,0,0,0)  # request PID values
+        elif self.selectedController == 'Speed':
+            self.sendCMD(self.selectedMotor,23,0,0,0,0) # set speed control mode
+            self.sendCMD(self.selectedMotor,22,0,0,0,0)  # request PID values
+            self.selectSpeedController()
+        elif self.selectedController == 'Tension':
+            print("[action] SELECT TENSION")
+            self.sendCMD(self.selectedFinger,CMD_SET_CONTROL_MODE,TEN_CTRL,0,0,0) # set position control mode
+            time.sleep(0.1)
+            self.sendCMD(self.selectedFinger,CMD_REQ_PID_VALUES,0,0,0,0)  # request PID values
+            time.sleep(0.1)
+            self.selectTensionController()
+        self.main.mainPlot.clearData()
 
 
     def selectPositionController(self):
         self.main.refSliderLabel.setText('Position Ref')
-        self.main.refSlider.setMinimum(-500)
+        self.main.refSlider.setMinimum(0)
         self.main.refSlider.setMaximum(500)
         self.main.refSlider.setTickInterval(10)
         self.main.refSlider.setValue(0)
@@ -366,23 +374,20 @@ class App(QApplication):
 
 
     def setPValue(self):
-        self.main.pValue.setText(str('%.2f'%(self.main.pSlider.value()/self.main.factor)))
-        #self.serialHandler.sendCompoundMsg.emit('P',self.main.pSlider.value())
+        self.main.pValue.setText(str('%.2f'%(self.main.pSlider.value()/10)))
 
     def setIValue(self):
-        self.main.iValue.setText(str('%.2f'%(self.main.iSlider.value()/self.main.factor)))
-        #self.serialHandler.sendCompoundMsg.emit('I',self.main.iSlider.value())
+        self.main.iValue.setText(str('%.2f'%(self.main.iSlider.value()/10)))
 
     def setDValue(self):
-        self.main.dValue.setText(str('%.2f'%(self.main.dSlider.value()/self.main.factor)))
-        #self.serialHandler.sendCompoundMsg.emit('D',self.main.dSlider.value())
+        self.main.dValue.setText(str('%.2f'%(self.main.dSlider.value()/10)))
 
     def actionSendButton(self):
-        P = self.main.pSlider.value()
-        I = self.main.iSlider.value()
-        D = self.main.dSlider.value()
-        print(P/self.main.factor,I/self.main.factor,D/self.main.factor)
-        self.sendCMD(self.selectedMotor,CMD_SET_PID_VALUES,0,P,I,D)
+        P = self.main.pSlider.value()/10
+        I = self.main.iSlider.value()/10
+        D = self.main.dSlider.value()/10
+        print('P:%f I:%f D:%f'%(P,I,D))
+        self.sendCMD(self.selectedMotor,CMD_SET_PID_VALUES,0,int(P*self.main.factor),int(I*self.main.factor),int(D*self.main.factor))
         self.main.mainPlot.clearData()
 
     def refSliderMoved(self):
@@ -394,10 +399,9 @@ class App(QApplication):
         if self.selectedController == 'Position':
             self.sendCMD(self.selectedMotor,CMD_SET_POS_REF,value,0,0,0) # set position reference
         elif self.selectedController == 'Speed':
-            self.sendCMD(self.selectedMotor,0,value,0,0,0) # set position reference
-            #self.serialHandler.sendCompoundMsg.emit('#',self.main.refSlider.value())
+            self.sendCMD(self.selectedMotor,CMD_SET_SPEED_REF,value,0,0,0) # set position reference
         elif self.selectedController == 'Tension':
-            self.serialHandler.sendCompoundMsg.emit('$',self.main.refSlider.value())
+            self.sendCMD(self.selectedFinger,CMD_SET_FORCE_REF,value,0,0,0) # set position reference
 
     def configurePyQtGraph(self):
         pg.setConfigOption('background', 'w')
@@ -406,32 +410,33 @@ class App(QApplication):
 
     # Methods to handle serial data input
     def updateData(self, msg):
-        cmd = list()
-        for i in range(1,5):
-            cmd.append(msg[i])
+        cmd_list = list()
+        for i in range(0,len(msg)):
+            cmd_list.append(msg[i])
 
-        print(cmd)
+        print(cmd_list)
+        cmd = cmd_list[0]
+        motor = cmd_list[1]
+        val1 = cmd_list[2]
+        val2 = cmd_list[3]
+        val3 = cmd_list[4]
 
-        if self.showData == True:
-            ref,actual,time,tens = self.main.mainPlot.update(msg)
+        if cmd == CMD_UPDATE_PLOT and self.showData == True:
+            plot_data = [val1,val2,val3]
+            ref,actual,time = self.main.mainPlot.update(plot_data)
 
         if self.isLogging:
-            txt = "%f;%d;%d;%d" % (time,ref,actual,tens)
+            txt = "%f;%d;%d;%d" % (time,val1,val2,val3)
             row = []
             row.append(txt)
             self.logHandler.writerow(row)
 
-        #if(data[0] == 1):   # for graphics
-            # update plot
-            #"Ref %s;Actual %s;Time" % (self.selectedController,self.selectedController)
-            #print(sensorData)
-
-        if(cmd[0] == CMD_GET_PID_VALUES):   # update pid parameters in main window
-            self.main.pSlider.setValue(cmd[1])
-            self.main.pValue.setText(str('%.2f'%(cmd[1]/self.main.factor)))
-            self.main.iSlider.setValue(cmd[2])
-            self.main.iValue.setText(str('%.2f'%(cmd[2]/self.main.factor)))
-            self.main.dSlider.setValue(cmd[3])
-            self.main.dValue.setText(str('%.2f'%(cmd[3]/self.main.factor)))
+        if(cmd == CMD_GET_PID_VALUES):   # update pid parameters in main window
+            self.main.pSlider.setValue(val1/self.main.factor*10)
+            self.main.pValue.setText(str('%.2f'%(val1/self.main.factor)))
+            self.main.iSlider.setValue(val2/self.main.factor*10)
+            self.main.iValue.setText(str('%.2f'%(val2/self.main.factor)))
+            self.main.dSlider.setValue(val3/self.main.factor*10)
+            self.main.dValue.setText(str('%.2f'%(val3/self.main.factor)))
 
         self.processEvents()

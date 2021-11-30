@@ -78,8 +78,12 @@ class SensorPlot:
         self.clearData()
         self.dockWindow.close()
 
-    def update(self, measurement):
-
+    def update(self, data):
+        '''
+         data[0]: control ref
+         data[1]: control value
+         data[2]:
+        '''
         currentTime = datetime.today().timestamp()
 
         if self.isFirst:
@@ -93,9 +97,9 @@ class SensorPlot:
             # self.widgetPlot.setTitle(self.name)
 
         #self.currentX = measurement.xData - self.initialX
-        self.refY = measurement[1]
-        self.currentY = measurement[2]
-        self.val = measurement[3]
+        self.refY = data[0]
+        self.currentY = data[1]
+        self.val = data[2]
         self.currentTime = currentTime - self.initialTime
 
         #print(self.xIdx, self.currentX)
@@ -125,7 +129,7 @@ class SensorPlot:
         self.plot2.setData(x=timeDataTmp, y=yyDataTmp)
         self.plot3.setData(x=timeDataTmp, y=yyyDataTmp)
 
-        return int(self.refY),int(self.currentY),float(self.currentTime),int(self.val)
+        return int(self.refY),int(self.currentY),float(self.currentTime)
 
     def clearData(self):
         currentTime = datetime.today().timestamp()

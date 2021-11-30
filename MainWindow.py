@@ -22,6 +22,8 @@ class MainWindow(QMainWindow):
         # Window configuration
         self.mainPlot = SensorPlot('Plot', self)
         self.factor = 4096
+        self.max_controller_value = 100
+        self.interval = 1
         # Configure Window
         self.configureWindow()
 
@@ -105,11 +107,9 @@ class MainWindow(QMainWindow):
         self.pValue = QLabel("0",self)
         self.pSlider = QSlider(Qt.Horizontal)
         self.pSlider.setMinimum(0)
-        self.pSlider.setMaximum(8*self.factor)
+        self.pSlider.setMaximum(self.max_controller_value)
+        self.pSlider.setTickInterval(self.interval)
         self.pSlider.setTickPosition(QSlider.TicksBelow)
-        self.pSlider.setTickInterval(0)
-        self.pSlider.setSingleStep(10) # arrow-key step-size
-        self.pSlider.setPageStep(10) # mouse-wheel/page-key step-size
         self.slidersUI.addWidget(self.pLabel, row=0,col=0)
         self.slidersUI.addWidget(self.pSlider, row=0,col=1)
         self.slidersUI.addWidget(self.pValue, row=0,col=2)
@@ -120,24 +120,24 @@ class MainWindow(QMainWindow):
         self.iValue = QLabel("0",self)
         self.iSlider = QSlider(Qt.Horizontal)
         self.iSlider.setMinimum(0)
-        self.iSlider.setMaximum(5*self.factor)
+        self.iSlider.setMaximum(self.max_controller_value)
+        self.iSlider.setTickInterval(self.interval)
         self.slidersUI.addWidget(self.iLabel, row=1,col=0)
         self.slidersUI.addWidget(self.iSlider, row=1,col=1)
         self.slidersUI.addWidget(self.iValue, row=1,col=2)
         self.iSlider.setTickPosition(QSlider.TicksBelow)
-        self.iSlider.setTickInterval(128)
 
         # D slider
         self.dLabel = QLabel("kD",self)
         self.dValue = QLabel("0",self)
         self.dSlider = QSlider(Qt.Horizontal)
         self.dSlider.setMinimum(0)
-        self.dSlider.setMaximum(5*self.factor)
+        self.dSlider.setMaximum(self.max_controller_value)
         self.slidersUI.addWidget(self.dLabel, row=2,col=0)
         self.slidersUI.addWidget(self.dSlider, row=2,col=1)
         self.slidersUI.addWidget(self.dValue, row=2,col=2)
         self.dSlider.setTickPosition(QSlider.TicksBelow)
-        self.dSlider.setTickInterval(128)
+        self.dSlider.setTickInterval(self.interval)
 
         # Send button
         self.buttonSend = QPushButton("Send")

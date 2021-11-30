@@ -53,9 +53,6 @@ class SerialHandler(QObject):
 
         self.ser = serial.Serial()
 
-        # with serial.Serial(self.device, self.baudrate, timeout=0.1) as ser:
-        #     self.ser = ser
-
         # estructura del mensaje
         self.struct_fmt = '<BBhhh'
         self.struct_len = calcsize(self.struct_fmt)
@@ -163,10 +160,12 @@ class SerialHandler(QObject):
             try:
                 if self.ser.inWaiting():
                     msg = self.ser.read(self.struct_len)
-                    rxCom = unpack(self.struct_fmt, msg)
-                    #print(type(rxCom))
-                    self.bufferUpdated.emit(rxCom)
-                    #print(msg)
+                    #print(msg.decode())
+                    if len(msg) != 0:
+                        rxCom = unpack(self.struct_fmt, msg)
+                        self.bufferUpdated.emit(rxCom)
+                        #print(type(rxCom))
+
             except Exception as e:
                 print(e)
 
