@@ -18,8 +18,7 @@ from HandSerial import HandSerial
 
 from struct import *
 
-SEND_DATA_TRUE = 40
-SEND_DATA_FALSE = 20
+# motor cmds
 SET_POS_REF = 1
 SET_FORCE_REF = 2
 REQ_PID_VALUES = 22
@@ -27,6 +26,10 @@ SET_PID_VALUES = 23
 SET_CONTROL_MODE = 24
 DISABLE_MOTOR = 25
 ENABLE_MOTOR = 26
+
+# system cmds
+SEND_DATA_TRUE = 40
+SEND_DATA_FALSE = 20
 DEBUG_VAR = 55
 SOFTWARE_RESET = 99
 
@@ -71,17 +74,18 @@ def moveTwoMotors():
     s.sendCMD(0,ENABLE_MOTOR,0,0,0,0) # enable motor
     s.sendCMD(1,ENABLE_MOTOR,0,0,0,0) # enable motor
 
-    s.sendCMD(0,SET_POS_REF,goal,0,0,0)
-    time.sleep(0.1)
-    s.sendCMD(1,SET_POS_REF,origen,0,0,0)
+    for pos in range(0,500):
+            s.sendCMD(0,SET_POS_REF,pos*2,0,0,0)
+            s.sendCMD(1,SET_POS_REF,pos*5,0,0,0)
+            time.sleep(0.01)
 
-    time.sleep(2)
-    s.sendCMD(0,SET_POS_REF,origen,0,0,0)
-    time.sleep(0.1)
-    s.sendCMD(1,SET_POS_REF,goal,0,0,0)
-    time.sleep(2)
-    #s.sendCMD(0,DISABLE_MOTOR,0,0,0,0) # disable motor
-    #s.sendCMD(1,DISABLE_MOTOR,0,0,0,0) # disable motor
+    for pos in range(0,500):
+            s.sendCMD(0,SET_POS_REF,500-(pos*2),0,0,0)
+            s.sendCMD(1,SET_POS_REF,500-pos,0,0,0)
+            #time.sleep(0.01)
+
+    s.sendCMD(0,DISABLE_MOTOR,0,0,0,0) # disable motor
+    s.sendCMD(1,DISABLE_MOTOR,0,0,0,0) # disable motor
 
 def pote_test(motor):
     print("Enable data stream")
@@ -98,25 +102,14 @@ def pote_test(motor):
 
 
 def test(HandSerial):
+    receiveData(1)
+    moveTwoMotors()
+    #moveMotor(0)
+    #moveMotor(1)
+    #pote_test(0)
+    #time.sleep(20)
+    s.stopProcess()
 
-    s.cmd.id = 0 # si es cero no funciona, pero se corrige con los dos \xff al comienzo
-    s.cmd.cmd = 12
-    s.cmd.pref = 0
-    s.cmd.P = 1500
-    s.cmd.I = 0
-    s.cmd.D = 0
-    #s.send_command()
-
-    try:
-        #receiveData(1)
-        #moveTwoMotors()
-        moveMotor(0)
-        #pote_test(0)
-        #time.sleep(20)
-        s.stopProcess()
-    except Exception as e:
-        print(e)
-        s.stopProcess()
 
 if __name__ == "__main__":
 
