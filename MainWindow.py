@@ -92,8 +92,8 @@ class MainWindow(QMainWindow):
         self.refSliderLabel = QLabel("Controller Ref",self)
         self.refSliderValue = QLabel("0",self)
         self.refSlider = QSlider(Qt.Horizontal)
-        self.refSlider.setMinimum(-100)
-        self.refSlider.setMaximum(600)
+        self.refSlider.setMinimum(0)
+        self.refSlider.setMaximum(200)
         self.refSlider.setTickPosition(QSlider.TicksBelow)
         self.refSlider.setTickInterval(0)
         self.refSlider.setSingleStep(10) # arrow-key step-size

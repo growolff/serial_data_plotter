@@ -74,11 +74,10 @@ class App(QApplication):
         self.controllers = ['Position','Speed','Tension']
         self.selectedController = 'Position'
 
-        self.motors = ['F1_MF','F1_ME','F2_MF','F2_ME']
-        self.motors_idx = [F1_MF_IDX,F1_ME_IDX,F2_MF_IDX,F2_ME_IDX]
+        self.motors = ['M1','M2','M3','M4','M5','M6']
+        self.motors_idx = [F1_MF_IDX,F1_ME_IDX,F2_MF_IDX,F2_ME_IDX,F3_MF_IDX,F3_ME_IDX]
 
         self.selectedMotor = F1_ME_IDX #'M1'
-        self.selectedFinger = F1_IDX #indice
 
         # data logging
         self.isLogging = False
@@ -169,7 +168,7 @@ class App(QApplication):
 
         for cont in self.motors:
             self.main.comboBoxMotors.addItem(cont)
-        self.main.comboBoxMotors.setCurrentIndex(self.motors.index('F1_ME'))
+        self.main.comboBoxMotors.setCurrentIndex(self.motors.index('M1'))
 
         for cont in self.controllers:
             self.main.comboBoxController.addItem(cont)
@@ -260,18 +259,18 @@ class App(QApplication):
 
 
     def changeMotor(self):
-        print('Selected motor M%s'%(self.motors[self.selectedMotor]))
+        print('Selected motor %s'%(self.motors[self.selectedMotor]))
         self.selectedMotor = self.main.comboBoxMotors.currentIndex()
         self.main.mainPlot.clearData()
         self.sendCMD(self.selectedMotor,REQ_PID_VALUES,1,0,0,0)  # request PID values
 
     def brake(self):
-        self.sendCMD(self.selectedMotor,SEND_DATA_FALSE,0,0,0,0) # stop sending data
-        #self.sendCMD(self.selectedMotor,DISABLE_MOTOR,0,0,0,0) # toggle enable 0
+        #self.sendCMD(self.selectedMotor,SEND_DATA_FALSE,0,0,0,0) # stop sending data
+        self.sendCMD(self.selectedMotor,DISABLE_MOTOR,0,0,0,0) # toggle enable 0
         self.isMoving = False
 
     def move(self):
-        self.sendCMD(self.selectedMotor,SEND_DATA_TRUE,0,0,0,0) # resume sending data
+        #self.sendCMD(self.selectedMotor,SEND_DATA_TRUE,0,0,0,0) # resume sending data
         self.sendCMD(self.selectedMotor,ENABLE_MOTOR,0,0,0,0) # resume enable
         self.isMoving = True
 
@@ -282,8 +281,8 @@ class App(QApplication):
             self.main.buttonStop.setText("RESUME")
             self.main.buttonStop.setStyleSheet('QPushButton {color: green;}')
             self.main.buttonSelectController.setEnabled(True)
-            self.showData = False
             self.isMoving = False
+            self.showData = False
             self.sendCMD(self.selectedMotor,SEND_DATA_FALSE,0,0,0,0) # stop sending data
             self.brake()
         else:
@@ -327,7 +326,7 @@ class App(QApplication):
     def selectPositionController(self):
         self.main.refSliderLabel.setText('Position Ref')
         self.main.refSlider.setMinimum(0)
-        self.main.refSlider.setMaximum(500)
+        self.main.refSlider.setMaximum(200)
         self.main.refSlider.setTickInterval(10)
         self.main.refSlider.setValue(0)
         self.main.refSliderValue.setText('0')
