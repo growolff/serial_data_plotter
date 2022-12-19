@@ -1,6 +1,6 @@
 from PyQt5.Qt import *
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui
+from pyqtgraph.Qt import QtCore, QtWidgets
 import pyqtgraph.console
 import numpy as np
 
@@ -55,7 +55,7 @@ class SensorPlot:
         # Current value label
         self.layoutHeader = pg.LayoutWidget()
 
-        self.label = QtGui.QLabel("Valor actual: ")
+        self.label = QtWidgets.QLabel("Valor actual: ")
         self.layoutHeader.addWidget(self.label, row=0, col=0)
         self.layout.addWidget(self.layoutHeader, row=0, col=0)
 
